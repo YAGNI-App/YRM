@@ -1,0 +1,13 @@
+{
+  "name": "@yrm/provider-openai",
+  "version": "0.1.0",
+  "description": "YRM model provider for any OpenAI-compatible endpoint: Ollama, vLLM, llama.cpp, OpenRouter, Together, Groq and others.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  }
+}

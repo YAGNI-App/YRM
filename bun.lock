@@ -87,6 +87,13 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/ext-web": {
+      "name": "@yrm/ext-web",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/pi": {
       "name": "@yrm/pi",
       "version": "0.1.0",
@@ -152,6 +159,8 @@
     "@yrm/ext-notes": ["@yrm/ext-notes@workspace:packages/ext-notes"],
 
     "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
+
+    "@yrm/ext-web": ["@yrm/ext-web@workspace:packages/ext-web"],
 
     "@yrm/pi": ["@yrm/pi@workspace:packages/pi"],
 

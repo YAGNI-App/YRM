@@ -1,0 +1,13 @@
+{
+  "name": "@yrm/ext-web",
+  "version": "0.1.0",
+  "description": "YRM web dashboard: the attention queue, entities with a bi-temporal time machine, and provenance down to the quoted words.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  }
+}

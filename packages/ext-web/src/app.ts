@@ -1,4 +1,5 @@
 import { StoreError, YrmError, todayIn } from "@yrm/core";
+import { hasScope, type Auth, type Grant } from "@yrm/ext-auth";
 import type { View } from "./components.ts";
 import {
   dismissItem,
@@ -20,6 +21,7 @@ import {
   type WebDeps,
 } from "./data.ts";
 import type { Html } from "./html.ts";
+import { loginView, safeNext } from "./login.ts";
 import { entityView, eventView, factsView, messagePage, orgsView, peopleView, threadView, todayView } from "./pages.ts";
 import {
   CSRF_COOKIE,
@@ -38,10 +40,19 @@ import { isDate, parseWhen } from "./time.ts";
 export interface WebAppOptions {
   /** Refuse non-loopback Host headers (set when bound to a loopback address). Default true. */
   loopbackOnly?: boolean;
+  /**
+   * Who may use the dashboard. Without it every request runs as `deps.actor()`
+   * with full rights, which is only safe for in-process callers and tests.
+   */
+  auth?: Auth;
 }
 
 export interface WebApp {
-  fetch(req: Request): Promise<Response>;
+  /**
+   * `peer` is the remote address (`server.requestIP(req)`). Omitted means an
+   * in-process caller, which is treated as loopback.
+   */
+  fetch(req: Request, peer?: string | null): Promise<Response>;
   /** Ranked queues kept per date; cleared by writes and by "Re-rank". */
   rankCache: RankCache;
 }
@@ -64,6 +75,7 @@ interface Req {
   req: Request;
   url: URL;
   csrf: string;
+  grant?: Grant;
 }
 
 export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
@@ -85,7 +97,12 @@ export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
   function view(r: Req): View {
     const tz = deps.timezone();
     const today = todayIn(tz, deps.now());
-    return { tz, csrf: r.csrf, today, earliest: today, path: r.url.pathname, here: `${r.url.pathname}${r.url.search}` };
+    const v: View = { tz, csrf: r.csrf, today, earliest: today, path: r.url.pathname, here: `${r.url.pathname}${r.url.search}` };
+    if (r.grant) {
+      v.principal = r.grant.principal;
+      v.session = r.grant.via === "session";
+    }
+    return v;
   }
 
   async function fullView(r: Req): Promise<View> {
@@ -216,13 +233,14 @@ export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
 
   // ---- POST ----------------------------------------------------------------
 
-  type Action = (body: Record<string, string>, params: string[]) => Promise<unknown>;
+  /** `d` carries the caller as `actor`, so writes are attributed to the authenticated principal. */
+  type Action = (body: Record<string, string>, params: string[], d: WebDeps) => Promise<unknown>;
 
   const actions: Array<[RegExp, Action]> = [
     [
       /^\/api\/entity\/([^/]+)\/(confirm|reject)$/,
-      async (_b, [id, verb]) => {
-        const e = await setEntityStatus(deps, id!, verb === "confirm" ? "confirmed" : "rejected");
+      async (_b, [id, verb], d) => {
+        const e = await setEntityStatus(d, id!, verb === "confirm" ? "confirmed" : "rejected");
         if (!e) throw new HttpError(404, `No entity ${id}.`);
         rankCache.clear();
         return { entity: entitySummary(e) };
@@ -230,21 +248,21 @@ export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
     ],
     [
       /^\/api\/merge$/,
-      async (b) => {
+      async (b, _p, d) => {
         if (!b["from"] || !b["into"]) throw new HttpError(400, "merge needs `from` and `into` entity ids");
-        const { from, into } = await mergeEntities(deps, b["from"], b["into"]);
+        const { from, into } = await mergeEntities(d, b["from"], b["into"]);
         rankCache.clear();
         return { from: entitySummary(from), into: entitySummary(into) };
       },
     ],
     [
       /^\/api\/dismiss$/,
-      async (b) => {
+      async (b, _p, d) => {
         const key = b["key"];
         if (!key) throw new HttpError(400, "dismiss needs the item `key`");
         const until = b["until"] ? b["until"] : null;
         if (until !== null && !isDate(until.slice(0, 10))) throw new HttpError(400, `until must be YYYY-MM-DD, got "${until}"`);
-        return { dismissed: await dismissItem(deps, key, until) };
+        return { dismissed: await dismissItem(d, key, until) };
       },
     ],
     [
@@ -261,14 +279,57 @@ export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
   async function handlePost(r: Req): Promise<Response> {
     const match = findRoute(actions, r.url.pathname);
     if (!match) throw new HttpError(404, "No such action.");
-    const { body, isForm } = await readBody(r.req);
-    if (!sameOrigin(r.req)) throw new HttpError(403, "Cross-origin request refused.");
-    const presented = r.req.headers.get(CSRF_HEADER) ?? body[CSRF_FIELD] ?? null;
-    if (!tokensMatch(readCookie(r.req, CSRF_COOKIE), presented)) throw new HttpError(403, "Missing or wrong CSRF token. Reload the page and try again.");
+    // A bearer token is not ambient like a cookie, so a forged cross-site request cannot carry one; CSRF checks do not apply.
+    const { body, isForm } = r.grant?.via === "token" ? await readBody(r.req) : await checkedBody(r);
+    if (r.grant && !hasScope(r.grant, "write")) throw new HttpError(403, `${r.grant.principal} has read-only access; this needs the "write" scope.`);
     const [action, params] = match;
-    const result = await action(body, params);
+    const d: WebDeps = r.grant ? { ...deps, actor: () => r.grant!.principal } : deps;
+    const result = await action(body, params, d);
     if (isForm) return redirectBack(r, body["next"]);
     return json({ ok: true, ...(result as object) });
+  }
+
+  /** Same-origin and double-submit CSRF checks for every POST, login included. */
+  async function checkedBody(r: Req): Promise<{ body: Record<string, string>; isForm: boolean }> {
+    const parsed = await readBody(r.req);
+    if (!sameOrigin(r.req)) throw new HttpError(403, "Cross-origin request refused.");
+    const presented = r.req.headers.get(CSRF_HEADER) ?? parsed.body[CSRF_FIELD] ?? null;
+    if (!tokensMatch(readCookie(r.req, CSRF_COOKIE), presented)) throw new HttpError(403, "Missing or wrong CSRF token. Reload the page and try again.");
+    return parsed;
+  }
+
+  // ---- sign-in -----------------------------------------------------------------
+
+  /** `/login` and `/logout`, or null for any other path. Only reached when `opts.auth` is set. */
+  async function signIn(r: Req, auth: Auth): Promise<Response | null> {
+    const path = r.url.pathname;
+    if (path === "/login" && (r.req.method === "GET" || r.req.method === "HEAD")) {
+      return htmlResponse(loginView(view(r), safeNext(r.url.searchParams.get("next"))));
+    }
+    if (path === "/login" && r.req.method === "POST") {
+      const { body } = await checkedBody(r);
+      const next = safeNext(body["next"]);
+      const grant = await auth.verifyToken(body["token"]);
+      if (!grant) {
+        deps.log.warn("web sign-in refused: unknown token");
+        return htmlResponse(loginView(view(r), next, "That token is not valid."), 401);
+      }
+      deps.log.info("web sign-in", { token: grant.tokenName, principal: grant.principal });
+      return new Response(null, { status: 303, headers: { location: next, "set-cookie": auth.issueSession(grant) } });
+    }
+    if (path === "/logout" && r.req.method === "POST") {
+      await checkedBody(r);
+      return new Response(null, { status: 303, headers: { location: "/login", "set-cookie": auth.clearSession() } });
+    }
+    return null;
+  }
+
+  function unauthenticated(r: Req, wantsJson: boolean): Response {
+    if (wantsJson || r.req.method !== "GET") {
+      return json({ ok: false, error: "Sign in at /login, or send Authorization: Bearer <token>." }, 401);
+    }
+    const next = safeNext(`${r.url.pathname}${r.url.search}`);
+    return new Response(null, { status: 303, headers: { location: `/login?next=${encodeURIComponent(next)}` } });
   }
 
   function redirectBack(r: Req, next: string | undefined): Response {
@@ -291,15 +352,25 @@ export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
 
   // ---- dispatch --------------------------------------------------------------
 
-  async function dispatch(req: Request, csrf: string): Promise<Response> {
+  async function dispatch(req: Request, csrf: string, peer: string | null): Promise<Response> {
     const url = new URL(req.url);
     if (!hostAllowed(req, loopbackOnly)) return text(421, "This dashboard only answers to localhost.");
     const r: Req = { req, url, csrf };
     const wantsJson = url.pathname.startsWith("/api/");
     try {
+      // The stylesheet and script are public so the sign-in page renders.
       if (req.method === "GET" || req.method === "HEAD") {
         const s = await staticFile(url.pathname);
         if (s) return s;
+      }
+      if (opts.auth) {
+        const handled = await signIn(r, opts.auth);
+        if (handled) return handled;
+        const grant = await opts.auth.authenticate(req, peer, deps.actor());
+        if (!grant) return unauthenticated(r, wantsJson);
+        r.grant = grant;
+      }
+      if (req.method === "GET" || req.method === "HEAD") {
         const match = findRoute(routes, url.pathname);
         if (!match) throw new HttpError(404, "Nothing here.");
         return await match[0](r, match[1]);
@@ -322,11 +393,11 @@ export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
 
   return {
     rankCache,
-    async fetch(req) {
+    async fetch(req, peer) {
       // Pages embed the token in forms; the cookie carries the same value (double submit).
       const existing = readCookie(req, CSRF_COOKIE);
       const token = existing ?? newToken();
-      const res = await dispatch(req, token);
+      const res = await dispatch(req, token, peer === undefined ? "127.0.0.1" : peer);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
       if (existing === null) headers.append("set-cookie", csrfCookie(token));

@@ -16,6 +16,10 @@ export interface View {
   path: string;
   /** Path and query, for redirects back after a POST. */
   here: string;
+  /** Who this request runs as; shown in the footer. */
+  principal?: string;
+  /** True when the caller holds a session cookie, so the footer offers "Sign out". */
+  session?: boolean;
 }
 
 // ---- links -------------------------------------------------------------------

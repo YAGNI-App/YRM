@@ -1,6 +1,7 @@
 /**
- * The dashboard has no authentication in 0.1 (see the README). What it does
- * have is enough to stop other sites and other machines from driving it:
+ * Who may use the dashboard is `@yrm/ext-auth`'s job (tokens, the loopback
+ * bypass, the session cookie). This file stops other sites from driving a
+ * signed-in browser:
  *
  * - it binds to 127.0.0.1 unless told otherwise;
  * - on a loopback bind it refuses requests whose Host header is not a

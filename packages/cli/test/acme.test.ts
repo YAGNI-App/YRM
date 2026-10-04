@@ -71,7 +71,9 @@ describe("yrm import fixtures/acme", () => {
   it("counts every fact recorded, matching the store", () => {
     // Valid-time closures are the store's own bookkeeping when a later fact supersedes an earlier one.
     const closures = count("SELECT count(*) AS n FROM fact_audit WHERE action = 'valid_time_closed'");
-    expect(summaryNumber("facts recorded")).toBe(count("SELECT count(*) AS n FROM facts") - closures);
+    // View values (ADR 0010) are recorded after the pipeline, when the host stops; they are not pipeline facts.
+    const views = count("SELECT count(*) AS n FROM facts WHERE predicate LIKE 'view.%'");
+    expect(summaryNumber("facts recorded")).toBe(count("SELECT count(*) AS n FROM facts") - closures - views);
     expect(summaryNumber("facts recorded")).toBeGreaterThan(20);
   });
 
@@ -111,5 +113,17 @@ describe("yrm import fixtures/acme", () => {
 
     const then = await cli(["today", "--date", "2026-10-03", "--as-of", "2026-10-03"], { cwd: dir, builtins: BUILTINS });
     expect(then.stdout).toContain("Nothing needs you today.");
+  });
+
+  it("fills rule views on import and says why model views are empty", async () => {
+    const r = await cli(["view", "show", "Acme Robotics", "--kind", "organization"], { cwd: dir, builtins: BUILTINS });
+    expect(r.code).toBe(0);
+    expect(r.stdout).toMatch(/^ {2}last_contact +2026-09-22 +0\.95 +rule:views/m);
+    expect(r.stdout).toMatch(/^ {2}open_items +\d+ /m);
+    for (const name of ["economic_buyer", "deal_stage", "champion", "risk_summary"]) {
+      expect(r.stdout).toMatch(new RegExp(`^ {2}${name} +- +not computed: extract tier unavailable`, "m"));
+    }
+    const who = await cli(["who", "Acme Robotics"], { cwd: dir, builtins: BUILTINS });
+    expect(who.stdout).toContain("last_contact=2026-09-22");
   });
 });

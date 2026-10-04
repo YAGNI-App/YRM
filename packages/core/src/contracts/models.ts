@@ -103,8 +103,8 @@ export interface Route {
 }
 
 export interface RoutingPolicy {
-  /** Tier name to ordered fallback chain. */
-  routes: Record<Tier, Route[]>;
+  /** Tier name to ordered fallback chain. A tier with no chain is unavailable (NO_ROUTE). */
+  routes: Record<string, Route[]>;
   /** Reject any route whose model is not marked local. */
   localOnly?: boolean;
   /** Per-tenant monthly ceiling. Router refuses calls past it. */

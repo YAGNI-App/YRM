@@ -1,0 +1,18 @@
+{
+  "name": "@yrm/cli",
+  "version": "0.1.0",
+  "description": "The yrm command: init, import, sync, today, who, facts, confirm, merge, doctor, serve.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "yrm": "./src/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*",
+    "@yrm/provider-anthropic": "workspace:*",
+    "@yrm/provider-openai": "workspace:*"
+  }
+}

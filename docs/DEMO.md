@@ -184,7 +184,7 @@ yrm attention:explain unanswered-ask:<fact-id>
 ```
 unanswered-ask:01M43TY7PDX0R67QRR2EA0R9Q5  (score 1.00, by attention/unanswered-ask)
 Action: Reply to Marcus Bell about: If your Type II report slips past September 30, will you let us exit the pilot…
-Reason: Asked 32 days ago in 'Re: Security review follow-ups'; no reply from you since.
+Reason: Asked 31 days ago in 'Re: Security review follow-ups'; no reply from you since.
 
 Evidence: 1 fact(s), 1 event(s)
   fact 01M43TY7PDX0R67QRR2EA0R9Q5 [ask/asked, rule extract v1, confidence 0.6]

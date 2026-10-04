@@ -36,6 +36,8 @@ Tables, primary keys, unique keys and indexes mirror `packages/core/src/store/sc
 
 **Times stay text.** The store normalizes every time to `YYYY-MM-DDTHH:mm:ss.sssZ` before writing, so byte comparison is chronological comparison. Keeping text (with the C collation) makes every bi-temporal predicate and every `ORDER BY` behave exactly as in SQLite and round-trips the exact string callers get back. `timestamptz` would add a parse and format on every row, lose nothing we use, and open a door to session time zone and precision (microseconds vs milliseconds) differences between the two stores. If we later want range types or time arithmetic in SQL, a migration can add generated `timestamptz` columns without changing the contract.
 
+Knowledge time (ADR 0008) arrives as migration 2 in both stores: `known_at` and `known_until` on facts, backfilled from `recorded_at` and `retracted_at`, indexed on `(tenant_id, known_at)`, and `asOf` filters on them. The numbering matches SQLite's so a version means the same schema in either store.
+
 Indexes beyond the SQLite set: `(tenant_id, recorded_at)` on facts and `(tenant_id, occurred_at)` on events (both already in SQLite, named the same), a partial index on believed human facts for the human-beats-model check that runs on every write, and the GIN index on `tags`.
 
 ### Invariants
@@ -43,7 +45,7 @@ Indexes beyond the SQLite set: `(tenant_id, recorded_at)` on facts and `(tenant_
 The store enforces them exactly as SQLite does, in one transaction per write. Postgres adds two things SQLite does not need with a single writer:
 
 - **Concurrency.** `appendEvent` uses `INSERT ... ON CONFLICT (tenant_id, source, external_id) DO NOTHING`, so two hosts appending the same message produce one row and both get it back. Supersede, retract and end-validity lock the target fact with `SELECT ... FOR UPDATE`, so two writers cannot both supersede one fact.
-- **Append-only below the store.** Triggers reject `UPDATE` and `DELETE` on `events`, `DELETE` on `facts` and `fact_provenance`, any change to `event_participants` other than `entity_id`, and any change to `facts` other than closing `retracted_at` or `valid_to` once and repointing `subject_id`/`object_id` on merge. A stray `UPDATE` from a psql session fails instead of silently rewriting history.
+- **Append-only below the store.** Triggers reject `UPDATE` and `DELETE` on `events`, `DELETE` on `facts` and `fact_provenance`, any change to `event_participants` other than `entity_id`, and any change to `facts` other than closing `retracted_at`, `known_until` or `valid_to` once and repointing `subject_id`/`object_id` on merge. A stray `UPDATE` from a psql session fails instead of silently rewriting history.
 
 ### Tests
 

@@ -201,6 +201,39 @@ runStoreSuite(
 
 postgresSpecifics("pglite", () => pgliteBackend);
 
+describe("PostgresStore migrations (pglite)", () => {
+  it("migration 2 backfills knownAt and knownUntil from transaction time", async () => {
+    const db = new PGlite();
+    const client = pgliteClient(db);
+    await client.exec(MIGRATIONS[0]!.sql);
+    await client.exec(
+      "CREATE TABLE schema_version (version integer PRIMARY KEY, name text NOT NULL, applied_at text NOT NULL)",
+    );
+    await client.query("INSERT INTO schema_version VALUES (1, 'initial', '2026-01-01T00:00:00.000Z')");
+    await client.query(
+      `INSERT INTO facts (id, tenant_id, type, subject_id, predicate, value, statement, valid_from, recorded_at,
+         retracted_at, confidence, origin_kind, origin_by)
+       VALUES ('f1', 'local', 'attribute', 's', 'title', 'null', 'x', $1, $2, $3, 0.5, 'rule', 'r')`,
+      ["2026-06-02T00:00:00.000Z", "2026-07-01T00:00:00.000Z", "2026-08-01T00:00:00.000Z"],
+    );
+    const store = new PostgresStore({ client });
+    await store.migrate();
+    const f = await store.getFact("f1");
+    expect(f?.knownAt).toBe("2026-07-01T00:00:00.000Z");
+    expect(f?.knownUntil).toBe("2026-08-01T00:00:00.000Z");
+    const indexes = await client.query<{ name: string }>("SELECT indexname AS name FROM pg_indexes WHERE tablename = 'facts'");
+    expect(indexes.map((r) => r.name)).toContain("facts_known");
+    let caught: unknown;
+    try {
+      await client.query("UPDATE facts SET known_until = NULL WHERE id = 'f1'");
+    } catch (e) {
+      caught = e;
+    }
+    expect(String(caught)).toContain("known_until is already set");
+    await store.close();
+  });
+});
+
 // ---- A real server, when YRM_TEST_POSTGRES_URL is set (CI service container) ----
 
 const url = process.env["YRM_TEST_POSTGRES_URL"];

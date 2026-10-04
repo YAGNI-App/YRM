@@ -3,7 +3,13 @@
  * was true. A fact is a bi-temporal edge:
  *
  *   valid time:       validFrom .. validTo        when it was true in the world
- *   transaction time: recordedAt .. retractedAt   when we believed it
+ *   transaction time: recordedAt .. retractedAt   when this system held it
+ *   knowledge time:   knownAt .. knownUntil       when the tenant could have known it
+ *
+ * Knowledge time equals transaction time for facts recorded live. For history
+ * imported in bulk it comes from the source events (when a message was
+ * received), so "what did we know on June 3rd" still has an answer when the
+ * whole mailbox was indexed in October. See ADR 0008.
  *
  * Facts are never edited or deleted. To change one, record a new fact that
  * `supersedes` the old one; the host closes the old fact's transaction time.
@@ -115,8 +121,23 @@ export interface Fact<V = unknown> {
 
   validFrom: string;
   validTo?: string;
+  /** When this system wrote the row. Set by the store from its clock; never backdated. */
   recordedAt: string;
   retractedAt?: string;
+  /**
+   * When the tenant could first have known this: the receive time of the
+   * evidence for imported history, otherwise `recordedAt`. Defaults to
+   * `recordedAt` and is never later than it. Stores always return it; it is
+   * optional only so hand-built facts (tests, fixtures) need not repeat it.
+   */
+  knownAt?: string;
+  /**
+   * Knowledge-time counterpart of `retractedAt`: from when the tenant knew this
+   * was no longer believed. For a superseded fact, the successor's `knownAt`
+   * (never earlier than this fact's own `knownAt`); for an explicit retraction,
+   * `retractedAt`. Set by the store.
+   */
+  knownUntil?: string;
 
   provenance: Provenance[];
   /** 0..1. Human-origin facts are 1. */
@@ -128,8 +149,14 @@ export interface Fact<V = unknown> {
   tags?: string[];
 }
 
-/** What an extractor hands to the host. The host assigns id, tenantId, recordedAt. */
-export type NewFact<V = unknown> = Omit<Fact<V>, "id" | "tenantId" | "recordedAt" | "retractedAt"> & {
+/**
+ * What an extractor hands to the host. The store assigns id, recordedAt and
+ * knownUntil; the host fills tenantId and, for facts drawn from an event,
+ * `knownAt` (the event's `meta.receivedAt`, else its `occurredAt`) unless the
+ * extractor set it or the run is live. The store clamps `knownAt` to
+ * `recordedAt`, so nothing can claim to have been known in the future.
+ */
+export type NewFact<V = unknown> = Omit<Fact<V>, "id" | "tenantId" | "recordedAt" | "retractedAt" | "knownUntil"> & {
   tenantId?: string;
 };
 
@@ -143,7 +170,12 @@ export interface FactQuery {
   entityId?: string;
   /** Only facts that were true at this world time. Defaults to now. */
   validAt?: string;
-  /** Only facts we believed at this transaction time. Defaults to now. */
+  /**
+   * Only facts the tenant knew at this time: `knownAt <= asOf` and not
+   * superseded or retracted by then (`knownUntil`). Defaults to now. For live
+   * data this is the transaction time; for imported history it is when the
+   * evidence was received, not when YRM indexed it.
+   */
   asOf?: string;
   /** Include retracted and superseded facts. */
   includeRetracted?: boolean;

@@ -390,6 +390,114 @@ export function runStoreSuite(name: string, factory: StoreFactory, opts: StoreSu
       });
     });
 
+    describe("knowledge time (ADR 0008)", () => {
+      const JUNE = "2026-06-02T00:00:00.000Z";
+      const AUG14 = "2026-08-14T00:00:00.000Z";
+      const AUG20 = "2026-08-20T23:59:59.999Z";
+      const SEP3 = "2026-09-03T00:00:00.000Z";
+      const SEP5 = "2026-09-05T23:59:59.999Z";
+      const IMPORT = "2026-10-04T12:00:00.000Z";
+      const worksAt = (org: string, validFrom: string, knownAt?: string, supersedes?: string) =>
+        makeFact({
+          type: "relationship",
+          subject: { entityId: "priya", name: "Priya" },
+          object: { entityId: org, name: org },
+          predicate: "works_at",
+          value: { org },
+          statement: `Priya works at ${org}.`,
+          validFrom,
+          ...(knownAt ? { knownAt } : {}),
+          ...(supersedes ? { supersedes } : {}),
+        });
+      const orgs = (fs: Fact[]) => fs.map((f) => f.object?.entityId).sort();
+
+      test("defaults knownAt to recordedAt", async () => {
+        clock.set("2026-03-01T00:00:00.000Z");
+        const f = await store.recordFact(makeFact());
+        expect(f.knownAt).toBe("2026-03-01T00:00:00.000Z");
+        expect((await store.getFact(f.id))?.knownAt).toBe("2026-03-01T00:00:00.000Z");
+      });
+
+      test("keeps recordedAt honest and stores an earlier knownAt", async () => {
+        clock.set(IMPORT);
+        const f = await store.recordFact(worksAt("acme", JUNE, "2026-06-02T10:00:00-06:00"));
+        expect(f.recordedAt).toBe(IMPORT);
+        expect(f.knownAt).toBe("2026-06-02T16:00:00.000Z");
+        expect(await store.getFact(f.id)).toEqual(f as Fact);
+      });
+
+      test("clamps knownAt to recordedAt: nothing is known in the future", async () => {
+        clock.set("2026-03-01T00:00:00.000Z");
+        const f = await store.recordFact(makeFact({ knownAt: "2027-01-01T00:00:00Z" }));
+        expect(f.knownAt).toBe("2026-03-01T00:00:00.000Z");
+        await expectStoreError(store.recordFact(makeFact({ knownAt: "not a date" })), "INVALID_TIME");
+      });
+
+      test("asOf filters on knownAt, not recordedAt", async () => {
+        clock.set(IMPORT);
+        const acme = await store.recordFact(worksAt("acme", JUNE, JUNE));
+        const q = { subjectId: "priya", predicate: "works_at", validAt: AUG20 };
+        expect(orgs(await store.queryFacts({ ...q, asOf: AUG20 }))).toEqual(["acme"]);
+        expect(await store.queryFacts({ ...q, asOf: "2026-06-01T00:00:00Z" })).toEqual([]);
+        expect((await store.queryFacts({ ...q })).map((f) => f.id)).toEqual([acme.id]);
+      });
+
+      test("supersedes in knowledge time: known in June, replaced as of Sept 3", async () => {
+        clock.set(IMPORT);
+        const acme = await store.recordFact(worksAt("acme", JUNE, JUNE));
+        clock.set("2026-10-04T12:00:01.000Z");
+        const northwind = await store.recordFact(worksAt("northwind", AUG14, SEP3, acme.id));
+        expect(northwind.knownAt).toBe(SEP3);
+
+        // The old row closes in both times: transaction time at the import, knowledge time on Sept 3.
+        const old = await store.getFact(acme.id);
+        expect(old?.retractedAt).toBe("2026-10-04T12:00:01.000Z");
+        expect(old?.knownUntil).toBe(SEP3);
+
+        // The bridging copy (Acme until Aug 14) is known from when the successor was.
+        const closure = (await store.queryFacts({ subjectId: "priya", includeRetracted: true, validAt: JUNE })).find(
+          (f) => f.id !== acme.id,
+        );
+        expect(closure?.validTo).toBe(AUG14);
+        expect(closure?.knownAt).toBe(SEP3);
+        expect(closure?.knownUntil).toBeUndefined();
+
+        const q = { subjectId: "priya", predicate: "works_at" };
+        // On Aug 20 we had her at Acme, and thought she was still there.
+        expect(orgs(await store.queryFacts({ ...q, validAt: AUG20, asOf: AUG20 }))).toEqual(["acme"]);
+        // By Sept 5 we knew she had left on Aug 14.
+        expect(orgs(await store.queryFacts({ ...q, validAt: AUG20, asOf: SEP5 }))).toEqual(["northwind"]);
+        // ... and that she was at Acme before that, exactly once (the bridge, not the retracted original).
+        const july = await store.queryFacts({ ...q, validAt: "2026-07-01T00:00:00Z", asOf: SEP5 });
+        expect(july.map((f) => f.id)).toEqual([closure!.id]);
+        expect(orgs(await store.queryFacts({ ...q, validAt: "2026-07-01T00:00:00Z", asOf: AUG20 }))).toEqual(["acme"]);
+        // The day before Sept 3 the change is not known yet.
+        expect(orgs(await store.queryFacts({ ...q, validAt: AUG20, asOf: "2026-09-02T23:59:59Z" }))).toEqual(["acme"]);
+      });
+
+      test("never inverts a knowledge window when a successor is known before its predecessor", async () => {
+        clock.set(IMPORT);
+        const a = await store.recordFact(makeFact({ knownAt: SEP3 }));
+        const b = await store.recordFact(makeFact({ knownAt: JUNE, supersedes: a.id }));
+        expect((await store.getFact(a.id))?.knownUntil).toBe(SEP3);
+        expect(b.knownAt).toBe(JUNE);
+        // a was never visible on its own: from June we had b, and a's window is empty.
+        const at = (asOf: string) => store.queryFacts({ subjectId: "entity-subject", asOf }).then((fs) => fs.map((f) => f.id));
+        expect(await at("2026-07-01T00:00:00Z")).toEqual([b.id]);
+        expect(await at(SEP5)).toEqual([b.id]);
+      });
+
+      test("an explicit retraction is known when it is made", async () => {
+        clock.set(IMPORT);
+        const f = await store.recordFact(makeFact({ knownAt: JUNE }));
+        clock.set("2026-10-05T00:00:00.000Z");
+        await store.retractFact(f.id, "user:jack");
+        expect((await store.getFact(f.id))?.knownUntil).toBe("2026-10-05T00:00:00.000Z");
+        expect(await store.queryFacts({ subjectId: "entity-subject", asOf: "2026-10-04T23:00:00Z" })).toHaveLength(1);
+        expect(await store.queryFacts({ subjectId: "entity-subject" })).toHaveLength(0);
+      });
+    });
+
     describe("entities", () => {
       test("creates with id and timestamps and round-trips", async () => {
         clock.set("2026-04-01T00:00:00.000Z");

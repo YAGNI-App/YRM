@@ -1,5 +1,8 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
-import type { Database } from "bun:sqlite";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Store } from "../contracts/index.ts";
 import { ConfigError, YrmError } from "../errors.ts";
 import { makeEvent } from "../testing/fixtures.ts";
@@ -33,6 +36,38 @@ describe("SqliteStore specifics", () => {
     await s.migrate();
     expect(dbOf(s).query<{ foreign_keys: number }, []>("PRAGMA foreign_keys").get()?.foreign_keys).toBe(1);
     await s.close();
+  });
+
+  it("migration 2 backfills knownAt and knownUntil from transaction time", async () => {
+    const JUNE = "2026-06-02T00:00:00.000Z";
+    const dir = mkdtempSync(join(tmpdir(), "yrm-mig-"));
+    try {
+      const path = join(dir, "v1.sqlite");
+      const v1 = new Database(path, { create: true });
+      v1.exec(MIGRATIONS[0]!.sql);
+      v1.run("CREATE TABLE schema_version (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)");
+      v1.run("INSERT INTO schema_version VALUES (1, 'initial', '2026-01-01T00:00:00.000Z')");
+      v1.run(
+        `INSERT INTO facts (id, tenant_id, type, subject_id, predicate, value_json, statement, valid_from, recorded_at,
+           retracted_at, confidence, origin_kind, origin_by)
+         VALUES ('f1', 'local', 'attribute', 's', 'title', 'null', 'x', ?, ?, ?, 0.5, 'rule', 'r')`,
+        [JUNE, "2026-07-01T00:00:00.000Z", "2026-08-01T00:00:00.000Z"],
+      );
+      v1.close();
+      const migrated = new SqliteStore({ path });
+      await migrated.migrate();
+      const f = await migrated.getFact("f1");
+      expect(f?.knownAt).toBe("2026-07-01T00:00:00.000Z");
+      expect(f?.knownUntil).toBe("2026-08-01T00:00:00.000Z");
+      const indexes = dbOf(migrated)
+        .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'facts'")
+        .all()
+        .map((r) => r.name);
+      expect(indexes).toContain("facts_known");
+      await migrated.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("createStore opens sqlite and rejects bad storage config", async () => {

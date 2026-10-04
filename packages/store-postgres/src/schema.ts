@@ -238,6 +238,45 @@ export const MIGRATIONS: readonly Migration[] = [
         FOR EACH ROW EXECUTE FUNCTION yrm_reject_change();
     `,
   },
+  {
+    version: 2,
+    name: "fact_knowledge_time",
+    // Knowledge time (ADR 0008), mirroring SQLite migration 2. Rows written
+    // before it existed were known when they were recorded, so backfill from
+    // transaction time. The append-only guard learns the new columns:
+    // known_at never changes, known_until closes once.
+    sql: `
+      ALTER TABLE facts ADD COLUMN known_at ${K};
+      ALTER TABLE facts ADD COLUMN known_until ${K};
+      UPDATE facts SET known_at = recorded_at, known_until = retracted_at;
+      ALTER TABLE facts ALTER COLUMN known_at SET NOT NULL;
+      CREATE INDEX facts_known ON facts (tenant_id, known_at);
+
+      CREATE OR REPLACE FUNCTION yrm_guard_fact_update() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF (NEW.id, NEW.tenant_id, NEW.type, NEW.subject_name, NEW.object_name, NEW.predicate, NEW.value,
+            NEW.statement, NEW.valid_from, NEW.recorded_at, NEW.known_at, NEW.confidence, NEW.origin_kind,
+            NEW.origin_by, NEW.origin_model, NEW.origin_version, NEW.supersedes, NEW.tags)
+           IS DISTINCT FROM
+           (OLD.id, OLD.tenant_id, OLD.type, OLD.subject_name, OLD.object_name, OLD.predicate, OLD.value,
+            OLD.statement, OLD.valid_from, OLD.recorded_at, OLD.known_at, OLD.confidence, OLD.origin_kind,
+            OLD.origin_by, OLD.origin_model, OLD.origin_version, OLD.supersedes, OLD.tags) THEN
+          RAISE EXCEPTION 'yrm: facts are append-only; record a superseding fact'
+            USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        IF OLD.retracted_at IS NOT NULL AND NEW.retracted_at IS DISTINCT FROM OLD.retracted_at THEN
+          RAISE EXCEPTION 'yrm: retracted_at is already set' USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        IF OLD.known_until IS NOT NULL AND NEW.known_until IS DISTINCT FROM OLD.known_until THEN
+          RAISE EXCEPTION 'yrm: known_until is already set' USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        IF OLD.valid_to IS NOT NULL AND NEW.valid_to IS DISTINCT FROM OLD.valid_to THEN
+          RAISE EXCEPTION 'yrm: valid_to is already set' USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        RETURN NEW;
+      END $$;
+    `,
+  },
 ];
 
 // Arbitrary constant: every YRM process migrating the same database takes

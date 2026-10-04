@@ -151,7 +151,11 @@ export function factRow(f: FactView, v: View, opts: { showSubject?: boolean; tra
     <p class="meta">${typeChip(f.type)} <span class="mono predicate">${f.predicate}</span>${
       opts.showSubject ? html` · ${entityLink(f.subject.entityId, f.subject.name ?? f.subject.entityId, t)}${f.object ? html` → ${entityLink(f.object.entityId, f.object.name ?? f.object.entityId, t)}` : ""}` : ""
     }</p>
-    <p class="meta muted"><span title="valid time: when it was true in the world">valid ${validRange(f, v.tz)}</span> · <span title="transaction time: when YRM recorded it">recorded ${time(f.recordedAt, v.tz, true)}</span>${
+    <p class="meta muted"><span title="valid time: when it was true in the world">valid ${validRange(f, v.tz)}</span> · ${
+      f.knownAt.slice(0, 10) !== f.recordedAt.slice(0, 10)
+        ? html`<span title="knowledge time: when we could first have known it (for imported mail, when it was received)">known ${time(f.knownAt, v.tz, true)}</span> · `
+        : ""
+    }<span title="transaction time: when YRM recorded it">recorded ${time(f.recordedAt, v.tz, true)}</span>${
       f.retractedAt ? html` · <span title="when YRM stopped believing it">retracted ${time(f.retractedAt, v.tz, true)}</span>` : ""
     } · confidence ${f.confidence.toFixed(2)} · ${originBadge(f.origin)}</p>
     ${f.laterRetractedAt ? html`<p class="meta later">Believed then; superseded on ${fmtDay(f.laterRetractedAt, v.tz)}.</p>` : ""}
@@ -187,7 +191,7 @@ export function timeMachineControl(v: View, tm: TimeMachine, extra: Record<strin
       : html`<span class="tm-status muted">showing what is true and known now</span>`
   }</div>
   ${hidden}
-  <div class="tm-fields">${slider("validAt", "True at", "world time", tm.validDate)}${slider("asOf", "Known by", "what YRM had recorded", tm.asOfDate)}</div>
+  <div class="tm-fields">${slider("validAt", "True at", "world time", tm.validDate)}${slider("asOf", "Known by", "what we knew then", tm.asOfDate)}</div>
   <div class="tm-presets">${preset("Now", null)}${preset("1 month ago", addDays(v.today, -30))}${preset("3 months ago", addDays(v.today, -91))}<button type="submit" class="btn">Travel</button></div>
 </form>`;
 }

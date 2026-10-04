@@ -1,4 +1,5 @@
-import type { Entity, Extractor, Fact, NewFact, SourceEvent } from "@yrm/core";
+import type { Entity, EntityRef, Extractor, Fact, NewFact, SourceEvent, Store } from "@yrm/core";
+import { RULE_ORIGIN, WORKS_AT_CONFIDENCE } from "./header.ts";
 
 /** Cheap gate: phrases people use when they announce a move. */
 export const JOB_CHANGE_TRIGGER =
@@ -76,16 +77,108 @@ function currentEmployer(facts: Fact[], personId: string): string | undefined {
     .sort((a, b) => (a.validFrom < b.validFrom ? 1 : -1))[0]?.object?.name;
 }
 
+function words(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[’']s\b/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+/** One word list starts the other: "Acme" names "Acme Robotics", "Northwind Automation" names "Northwind". */
+function prefixOf(a: string[], b: string[]): boolean {
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length > 0 && short.every((w, i) => long[i] === w);
+}
+
+/** Does `said` (as written in a message) name this organization, by name or by its domain's first label? */
+export function namesOrganization(said: string, org: Pick<Entity, "name" | "identifiers">): boolean {
+  const s = words(said);
+  if (prefixOf(s, words(org.name))) return true;
+  return org.identifiers.some((i) => i.type === "domain" && prefixOf(s, words(i.value.split(".")[0] ?? "")));
+}
+
+async function findOrganization(store: Store, tenantId: string, said: string): Promise<Entity | undefined> {
+  const first = words(said)[0];
+  if (!first) return undefined;
+  const found = await store.findEntities({ tenantId, kind: "organization", nameLike: first });
+  return found.find((o) => o.status !== "merged" && o.status !== "rejected" && namesOrganization(said, o));
+}
+
+/**
+ * Close the old `works_at` and open the new one. Ends only rule- or
+ * model-origin edges that are still open at the move, so running twice is a
+ * no-op; a human-origin edge is the human's call. Returns the new `works_at`
+ * to record (possibly superseding one that starts later, as when the new
+ * address shows up weeks after the move), or nothing if one already covers it.
+ */
+async function moveEmployer(
+  store: Store,
+  tenantId: string,
+  person: EntityRef,
+  value: JobChangeValue,
+  event: SourceEvent,
+  provenance: NewFact["provenance"],
+): Promise<{ joining?: Entity; worksAt?: NewFact; ended: NewFact[] }> {
+  const at = event.occurredAt;
+  const ended: NewFact[] = [];
+  const mine = { tenantId, subjectId: person.entityId, predicate: "works_at" };
+  if (value.leaving) {
+    for (const f of await store.queryFacts({ ...mine, validAt: at })) {
+      if (f.origin.kind === "human" || f.validTo !== undefined || !f.object) continue;
+      const org = await store.resolveEntity(f.object.entityId);
+      if (!org || !namesOrganization(value.leaving, org)) continue;
+      // Ending a job is itself knowledge that arrived with this event, so it is
+      // returned as a superseding fact for the host to record (with the event's
+      // knownAt) rather than edited in place. "What did we know on Aug 20" then
+      // keeps the old edge until the farewell mail was actually received.
+      const { id, recordedAt, retractedAt, knownAt, knownUntil, ...rest } = f;
+      void id; void recordedAt; void retractedAt; void knownAt; void knownUntil;
+      ended.push({
+        ...rest,
+        validTo: at,
+        supersedes: f.id,
+        provenance: [...f.provenance, ...provenance],
+        origin: { ...RULE_ORIGIN },
+        confidence: Math.min(f.confidence, 0.8),
+      });
+    }
+  }
+  if (!value.joining) return { ended };
+  const joining =
+    (await findOrganization(store, tenantId, value.joining)) ??
+    (await store.createEntity({ tenantId, kind: "organization", name: value.joining, identifiers: [], status: "proposed" }));
+  const pair = { ...mine, objectId: joining.id };
+  if ((await store.queryFacts({ ...pair, validAt: at })).length > 0) return { joining, ended };
+  const later = (await store.queryFacts(pair)).find((f) => f.validFrom > at);
+  if (later?.origin.kind === "human") return { joining, ended };
+  const worksAt: NewFact = {
+    type: "relationship",
+    subject: person,
+    object: { entityId: joining.id, name: joining.name },
+    predicate: "works_at",
+    value: { domain: joining.identifiers.find((i) => i.type === "domain")?.value },
+    statement: `${person.name ?? "They"} works at ${joining.name}.`,
+    validFrom: at,
+    provenance: [...provenance, ...(later?.provenance ?? [])],
+    confidence: WORKS_AT_CONFIDENCE,
+    origin: RULE_ORIGIN,
+    ...(later ? { supersedes: later.id } : {}),
+  };
+  return { joining, worksAt, ended };
+}
+
 /**
  * `resolve:job-change`: a rule that records a `job_change` signal for the
  * sender. `validFrom` is the message date, not the import time, so a message
  * delivered late still says when the change happened.
  *
- * It deliberately does not end the old `works_at`: the signal is evidence, and
- * closing valid time is for the attention and extract layers (or a human) to
- * decide once they have weighed it.
+ * With a store it also moves the employment edge (#18): the `works_at` to the
+ * organization being left ends at the message date, and a `works_at` to the
+ * one being joined starts then. Without one (unit tests) it only records the
+ * signal.
  */
-export function jobChangeExtractor(): Extractor {
+export function jobChangeExtractor(store?: Store): Extractor {
   return {
     name: "resolve:job-change",
     version: "1",
@@ -102,26 +195,31 @@ export function jobChangeExtractor(): Extractor {
         const employer = currentEmployer(ctx.knownFacts, sender.id);
         if (employer) value.leaving = employer;
       }
+      const subject: EntityRef = { entityId: sender.id, name: sender.name };
+      const provenance: NewFact["provenance"] = [
+        {
+          eventId: event.id,
+          speaker: subject,
+          quote: parsed.quote.text,
+          span: { start: parsed.quote.start, end: parsed.quote.end },
+        },
+      ];
+      const moved = store ? await moveEmployer(store, ctx.tenantId, subject, value, event, provenance) : { ended: [] };
       const parts = [value.leaving && `leaving ${value.leaving}`, value.joining && `joining ${value.joining}`].filter(Boolean);
       const fact: NewFact<JobChangeValue> = {
         type: "signal",
-        subject: { entityId: sender.id, name: sender.name },
+        subject,
+        // The organization joined, so attention can tell the new employer from the stale one.
+        ...(moved.joining ? { object: { entityId: moved.joining.id, name: moved.joining.name } } : {}),
         predicate: "job_change",
         value,
         statement: `${sender.name} is changing jobs${parts.length ? `: ${parts.join(", ")}` : ""}.`,
         validFrom: event.occurredAt,
-        provenance: [
-          {
-            eventId: event.id,
-            speaker: { entityId: sender.id, name: sender.name },
-            quote: parsed.quote.text,
-            span: { start: parsed.quote.start, end: parsed.quote.end },
-          },
-        ],
+        provenance,
         confidence: 0.7,
-        origin: { kind: "rule", by: "resolve", version: "1" },
+        origin: RULE_ORIGIN,
       };
-      return [fact];
+      return [fact, ...moved.ended, ...(moved.worksAt ? [moved.worksAt] : [])];
     },
   };
 }

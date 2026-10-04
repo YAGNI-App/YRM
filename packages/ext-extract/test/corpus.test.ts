@@ -191,6 +191,33 @@ describe("rule extractor on the Acme corpus", () => {
     expect(json.overall).toEqual(card.overall);
   });
 
+  it("closes every ground-truth commitment as the corpus does, including deliveries in new threads (#16)", () => {
+    const wrong = card.closure.wrong.map((w) => w.id);
+    // f02 (pick data), f03 (proposal) and f04 (order form) are delivered in fresh threads.
+    for (const id of ["f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08"]) expect(wrong).not.toContain(id);
+    // f12 is answered by Jack's same-thread promise rather than the delivery; see README.
+    expect(wrong).toEqual(["f12"]);
+    expect(card.closure.correct).toBe(card.closure.expected - 1);
+  });
+
+  it("keeps commitments, decisions and objections precise", () => {
+    for (const type of ["commitment", "decision", "objection"]) expect(card.byType[type]!.recall).toBe(1);
+    expect(card.byType["commitment"]!.precision).toBe(1);
+    const spurious = card.spurious.map((s) => s.quote);
+    expect(spurious.some((q) => /pencil in Luis|make a call on scope|discovery call on June 16/.test(q))).toBe(false);
+  });
+
+  it("gives the order form to Rachel, whom Marcus's 'she' refers to, and closes it with her delivery", async () => {
+    const [rachel] = await store.findEntities({ identifier: { value: "rachel.kim@acme-robotics.example" } });
+    const [c] = await store.queryFacts({ type: "commitment", subjectId: rachel!.id });
+    expect(c!.value as CommitmentValue).toMatchObject({
+      status: "fulfilled",
+      dueAt: "2026-07-17",
+      resolvedBy: eventIdOf.get("<202607171548.orderform@acme-robotics.example>"),
+    });
+    expect(c!.provenance.at(-1)!.quote).toStartWith("Attached is the pilot order form");
+  });
+
   it("marks Tom's missed install as broken and Dana's documents as fulfilled", async () => {
     const tom = await store.queryFacts({ type: "commitment", subjectId: entityOf.get("tom")! });
     expect(tom.map((f) => (f.value as CommitmentValue).status)).toContain("broken");

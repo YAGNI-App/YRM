@@ -108,9 +108,29 @@ describe("Acme corpus", () => {
     const leaving = events.find((e) => e.externalId === "<202608141702.leaving@acme-robotics.example>")!;
     const { facts } = await host.extract(leaving);
     const priya = people.find((p) => p.name === "Priya Raman")!;
-    expect(facts.map((f) => [f.predicate, f.subject.entityId, f.validFrom, f.value])).toEqual([
-      ["job_change", priya.id, leaving.occurredAt, { leaving: "Acme", joining: "Northwind Automation" }],
+    const northwind = orgs.find((o) => domainOf(o.id) === "northwind.example")!;
+    const acme = orgs.find((o) => domainOf(o.id) === "acme-robotics.example")!;
+    const acmeEdge = (
+      await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, predicate: "works_at", objectId: acme.id, includeRetracted: true })
+    ).find((f) => f.validTo === undefined)!;
+    // The Acme edge is ended by a superseding fact (same start, validTo at the move), not edited in place.
+    expect(facts.map((f) => [f.predicate, f.subject.entityId, f.object?.entityId, f.validFrom, f.validTo])).toEqual([
+      ["job_change", priya.id, northwind.id, leaving.occurredAt, undefined],
+      ["works_at", priya.id, acme.id, acmeEdge.validFrom, leaving.occurredAt],
+      ["works_at", priya.id, northwind.id, leaving.occurredAt, undefined],
     ]);
+    expect(facts[0]!.value).toEqual({ leaving: "Acme", joining: "Northwind Automation" });
+
+    // Acme ends the day she left; Northwind starts then, not when her new address first showed up (#18).
+    const employer = async (validAt: string) =>
+      (await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, predicate: "works_at", validAt })).map((f) =>
+        domainOf(f.object!.entityId),
+      );
+    expect(await employer("2026-08-01T00:00:00Z")).toEqual(["acme-robotics.example"]);
+    expect(await employer("2026-08-20T00:00:00Z")).toEqual(["northwind.example"]);
+    expect(await employer("2026-10-01T00:00:00Z")).toEqual(["northwind.example"]);
+    const [ended] = await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, objectId: acme.id, validAt: "2026-08-01T00:00:00Z" });
+    expect(ended!.validTo).toBe(leaving.occurredAt);
     await host.close();
   });
 });

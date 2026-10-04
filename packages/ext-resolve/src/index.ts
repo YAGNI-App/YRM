@@ -21,7 +21,7 @@ export {
   normalizeName,
   orgNameFromDomain,
 } from "./normalize.ts";
-export { JOB_CHANGE_TRIGGER, parseJobChange, type JobChangeValue } from "./job-change.ts";
+export { JOB_CHANGE_TRIGGER, namesOrganization, parseJobChange, type JobChangeValue } from "./job-change.ts";
 export { listSuggestions, suggestionKey, type MergeSuggestion } from "./names.ts";
 export type { ResolveSettings } from "./settings.ts";
 
@@ -36,7 +36,7 @@ export default function resolve(yrm: ExtensionAPI): void {
   yrm.on("resolve:after", async (ctx, event, entities) => {
     await suggestSameName({ store: ctx.store, tenantId: ctx.tenantId, log: yrm.log, settings }, event, entities);
   });
-  yrm.registerExtractor(jobChangeExtractor());
+  yrm.registerExtractor(jobChangeExtractor(yrm.store));
   yrm.registerCommand(suggestionsCommand());
   yrm.registerCommand(mergeCommand());
 }

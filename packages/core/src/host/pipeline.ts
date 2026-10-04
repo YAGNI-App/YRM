@@ -9,6 +9,7 @@ import type {
   HookContext,
   Logger,
   ModelRouter,
+  NewEntity,
   NewFact,
   NewSourceEvent,
   Participant,
@@ -67,8 +68,10 @@ export interface IngestResult {
   events: SourceEvent[];
   /** Re-delivered events the store already had. */
   duplicates: number;
-  /** Events an `ingest:before` hook vetoed. */
+  /** Events an `ingest:before` hook vetoed, plus what the source reported dropping before emit. */
   dropped: number;
+  /** Items the source reported it could not read or did not handle. */
+  skipped: number;
 }
 
 function sourceOf(ctx: HostContext, source: SourceAdapter | string): SourceAdapter {
@@ -94,6 +97,11 @@ export function markSelf(participants: Participant[], config: YrmConfig): Partic
   });
 }
 
+/** Sources are extensions; a bad count is ignored rather than corrupting the totals. */
+function count(n: number | undefined): number {
+  return typeof n === "number" && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
 async function createSyncContext(
   ctx: HostContext,
   source: SourceAdapter,
@@ -108,6 +116,10 @@ async function createSyncContext(
     signal: opts.signal ?? new AbortController().signal,
     log: prefix(ctx.log, source.name),
     setCursor: (cursor) => ctx.store.setCursor(tenantId, source.name, cursor),
+    report: (stats) => {
+      result.dropped += count(stats.dropped);
+      result.skipped += count(stats.skipped);
+    },
     emit: async (events: NewSourceEvent[]) => {
       const created: SourceEvent[] = [];
       for (const incoming of events) {
@@ -138,7 +150,7 @@ async function createSyncContext(
 
 export async function ingest(ctx: HostContext, source: SourceAdapter | string, opts: StageOptions = {}): Promise<IngestResult> {
   const src = sourceOf(ctx, source);
-  const result: IngestResult = { source: src.name, events: [], duplicates: 0, dropped: 0 };
+  const result: IngestResult = { source: src.name, events: [], duplicates: 0, dropped: 0, skipped: 0 };
   await src.sync(await createSyncContext(ctx, src, result, opts));
   return result;
 }
@@ -151,7 +163,7 @@ export async function importPath(
 ): Promise<IngestResult> {
   const src = sourceOf(ctx, source);
   if (!src.importPath) throw new ExtensionError(`source "${src.name}" does not support importing a path`, src.name);
-  const result: IngestResult = { source: src.name, events: [], duplicates: 0, dropped: 0 };
+  const result: IngestResult = { source: src.name, events: [], duplicates: 0, dropped: 0, skipped: 0 };
   await src.importPath(path, await createSyncContext(ctx, src, result, opts));
   return result;
 }
@@ -165,10 +177,49 @@ export interface ResolveResult {
   entities: Entity[];
   /** Participants newly assigned in this pass. */
   assigned: number;
+  /** Entities created by resolvers in this pass (each announced via `entity:proposed`). */
+  created: Entity[];
+  /** Facts recorded by resolvers and `resolve:after` handlers (each announced via `fact:recorded`). */
+  facts: Fact[];
+}
+
+interface Recorded {
+  entities: Entity[];
+  facts: Fact[];
+}
+
+/**
+ * A view of the store that remembers every entity created and fact recorded
+ * through it. Resolvers write through `ResolveContext.store`; this is how the
+ * host learns what is new without widening the Resolver contract.
+ */
+function recordingStore(store: Store, recorded: Recorded): Store {
+  return new Proxy(store, {
+    get(target, prop) {
+      if (prop === "createEntity") {
+        return async (entity: NewEntity): Promise<Entity> => {
+          const out = await target.createEntity(entity);
+          recorded.entities.push(out);
+          return out;
+        };
+      }
+      if (prop === "recordFact") {
+        return async (fact: NewFact): Promise<Fact> => {
+          const out = await target.recordFact(fact);
+          recorded.facts.push(out);
+          return out;
+        };
+      }
+      const value: unknown = Reflect.get(target, prop, target);
+      return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+    },
+  });
 }
 
 export async function resolve(ctx: HostContext, event: SourceEvent): Promise<ResolveResult> {
   const tenantId = ctx.config.tenant.id;
+  const recorded: Recorded = { entities: [], facts: [] };
+  const store = recordingStore(ctx.store, recorded);
   const participants = event.participants.map((p) => ({ ...p }));
   const fresh: Array<{ index: number; entityId: string }> = [];
   const unresolved = (): number[] =>
@@ -182,7 +233,7 @@ export async function resolve(ctx: HostContext, event: SourceEvent): Promise<Res
     try {
       out = await resolver.resolve(view, {
         tenantId,
-        store: ctx.store,
+        store,
         models: ctx.models,
         log: prefix(ctx.log, resolver.name),
       });
@@ -204,9 +255,18 @@ export async function resolve(ctx: HostContext, event: SourceEvent): Promise<Res
 
   if (fresh.length > 0) await ctx.store.setParticipantEntities(event.id, fresh);
   const updated: SourceEvent = { ...event, participants };
+  const hctx = hookContext(ctx);
+  // Fired for every entity a resolver created, including ones created already
+  // confirmed (the tenant's own organization); `entity.status` says which.
+  for (const created of recorded.entities) {
+    const current = (await ctx.store.getEntity(created.id)) ?? created;
+    await ctx.hooks.emit("entity:proposed", hctx, current);
+  }
   const entities = await entitiesOf(ctx, updated);
-  await ctx.hooks.emit("resolve:after", hookContext(ctx), updated, entities);
-  return { event: updated, entities, assigned: fresh.length };
+  // resolve:after handlers (same-name suggestions) also record facts; count those too.
+  await ctx.hooks.emit("resolve:after", { ...hctx, store }, updated, entities);
+  for (const fact of recorded.facts) await ctx.hooks.emit("fact:recorded", hctx, fact);
+  return { event: updated, entities, assigned: fresh.length, created: recorded.entities, facts: recorded.facts };
 }
 
 async function entitiesOf(ctx: HostContext, event: SourceEvent): Promise<Entity[]> {
@@ -379,7 +439,12 @@ export function sortAndDedupe(items: QueueItem[]): QueueItem[] {
   return sorted.filter((q) => (seen.has(q.key) ? false : (seen.add(q.key), true)));
 }
 
-export async function rank(ctx: HostContext, today?: string): Promise<QueueItem[]> {
+export interface RankOptions {
+  /** Transaction time to rank as of; see `RankContext.asOf`. */
+  asOf?: string;
+}
+
+export async function rank(ctx: HostContext, today?: string, opts: RankOptions = {}): Promise<QueueItem[]> {
   const hctx = hookContext(ctx);
   const rctx: Omit<RankContext, "log"> = {
     tenantId: ctx.config.tenant.id,
@@ -387,6 +452,7 @@ export async function rank(ctx: HostContext, today?: string): Promise<QueueItem[
     models: ctx.models,
     today: today ?? todayIn(ctx.config.tenant.timezone),
   };
+  if (opts.asOf !== undefined) rctx.asOf = opts.asOf;
   let candidates = await ctx.hooks.pipe("queue:before_rank", hctx, []);
   for (const ranker of ctx.registry.rankers.list()) {
     try {
@@ -402,10 +468,11 @@ export async function rank(ctx: HostContext, today?: string): Promise<QueueItem[
 // ---- run ---------------------------------------------------------------------
 
 export interface RunSummary {
-  sources: Array<{ name: string; created: number; duplicates: number; dropped: number }>;
+  sources: Array<{ name: string; created: number; duplicates: number; dropped: number; skipped: number }>;
   events: number;
   /** Participants newly linked to entities. */
   resolved: number;
+  /** Facts recorded during resolve and extract. */
   facts: number;
   /** Events an `extract:before` hook skipped. */
   extractSkipped: number;
@@ -428,17 +495,18 @@ export async function run(ctx: HostContext, sourceName?: string, opts: StageOpti
 
   mark = performance.now();
   let resolved = 0;
+  let facts = 0;
   const resolvedEvents: SourceEvent[] = [];
   for (const e of created) {
     const r = await resolve(ctx, e);
     resolved += r.assigned;
+    facts += r.facts.length;
     for (const ent of r.entities) touched.add(ent.id);
     resolvedEvents.push(r.event);
   }
   const resolveMs = performance.now() - mark;
 
   mark = performance.now();
-  let facts = 0;
   let extractSkipped = 0;
   for (const e of resolvedEvents) {
     const r = await extract(ctx, e, opts);
@@ -460,7 +528,7 @@ export async function run(ctx: HostContext, sourceName?: string, opts: StageOpti
   const rankMs = performance.now() - mark;
 
   return {
-    sources: ingested.map((r) => ({ name: r.source, created: r.events.length, duplicates: r.duplicates, dropped: r.dropped })),
+    sources: ingested.map((r) => ({ name: r.source, created: r.events.length, duplicates: r.duplicates, dropped: r.dropped, skipped: r.skipped })),
     events: created.length,
     resolved,
     facts,

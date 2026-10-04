@@ -135,6 +135,11 @@ function modelsOf(v: unknown, fail: Fail): RoutingPolicy {
     if (typeof v["monthlyBudgetUsd"] !== "number") fail('"models.monthlyBudgetUsd" must be a number');
     policy.monthlyBudgetUsd = v["monthlyBudgetUsd"] as number;
   }
+  if (v["cooldownMs"] !== undefined) {
+    const c = v["cooldownMs"];
+    if (typeof c !== "number" || !Number.isFinite(c) || c < 0) fail('"models.cooldownMs" must be a non-negative number');
+    policy.cooldownMs = c as number;
+  }
   return policy;
 }
 

@@ -14,27 +14,15 @@ bun install
 alias yrm="bun run $PWD/packages/cli/src/main.ts"
 ```
 
-Then pick a demo directory.
-
-**If `fixtures/acme/yrm.config.ts` exists on `main`**, use it:
+Then use the fixture's own config, which sets Jack as the tenant, `yagni.example` as the self domain and `mailhub.example` as freemail:
 
 ```sh
 cd fixtures/acme
 ```
 
-**Otherwise** create one:
+Its routes are the ones `yrm init` writes: `triage` and `extract` on a local Ollama. If Ollama is not running, `import` prints one warning for the triage tier and carries on with rules; the router then skips the unreachable endpoint for a minute instead of trying it per event. For a silent import, copy the config elsewhere with `models: { routes: {} }`.
 
-```sh
-mkdir -p /tmp/yrm-demo && cd /tmp/yrm-demo
-yrm init --self jack@yagni.example --name Jack --timezone America/Denver
-```
-
-and edit the generated `yrm.config.ts`:
-
-- add `settings: { attention: { selfAddresses: ["jack@yagni.example"], selfDomains: ["yagni.example"] }, resolve: { selfDomains: ["yagni.example"], selfOrgName: "YAGNI", freemailDomains: ["mailhub.example"] } }` (the integration PR removes the need for this);
-- set `models: { routes: {} }` so the import really makes zero model calls. The generated default points `triage` and `extract` at a local Ollama; if Ollama is not running, every event logs a failed call.
-
-Check with `yrm doctor`: every tier under `models` should read `(no route)`. Keep a second terminal in a scratch directory where you have run a plain `yrm init` (default routes), for step 8.
+Keep a second terminal in a scratch directory where you have run a plain `yrm init` (default routes), for step 8.
 
 Make the terminal at least 160 columns wide; `who --facts` and `facts` print wide tables.
 
@@ -49,30 +37,29 @@ No command. Say:
 ### 2. Import (0:20, 40 seconds)
 
 ```sh
-yrm import <repo>/fixtures/acme      # or `yrm import .` inside fixtures/acme
+yrm import .
 ```
 
 ```
-source    path                         created  dup  dropped
---------  ---------------------------  -------  ---  -------
-mail      .../fixtures/acme/mail            33    0        0
-calendar  .../fixtures/acme/calendar         4    0        0
-notes     .../fixtures/acme/notes            3    0        0
+source    path      created  dup  dropped  skipped
+--------  --------  -------  ---  -------  -------
+mail      mail           33    0        7        0
+calendar  calendar        4    0        0        0
+notes     notes           3    0        0        0
 
-events created            40
-duplicates                 0
-dropped                    0
-participants resolved    147
-entities proposed         13
-facts recorded            51
-time                    74ms
+events created                 40
+duplicates                      0
+dropped                         7
+participants resolved         147
+entities proposed              13
+facts recorded                 62
+  superseding earlier facts    15
+time                         81ms
 ```
 
-Say: "Four months of a sales pilot: 40 mail files, four meetings, three call notes. Seven of the mails were newsletters and notifications and were dropped. No model was called; this is rules only, in under 100 milliseconds."
+Say: "Four months of a sales pilot: 40 mail files, four meetings, three call notes. Seven of the mails were newsletters and notifications and were dropped. No model answered; this is rules only, in under 100 milliseconds. Fifteen facts replace earlier ones: an ask that got answered, a commitment that was kept."
 
-Point at: `time`, `facts recorded 51`, `entities proposed 13`. Run it again to show `duplicates 40`: the log is idempotent.
-
-Note: the `dropped` column reads 0 even though 7 bulk messages were filtered; the counters are being fixed in the integration PR. Say "seven" from the story rather than pointing at the column.
+Point at: `dropped 7`, `time`, `facts recorded 62`, `entities proposed 13`. Run it again to show `duplicates 40`: the log is idempotent.
 
 ### 3. Facts with provenance (1:00, 50 seconds)
 
@@ -173,17 +160,17 @@ The story is set on the morning of October 3, and the top three should match [`S
 
 ```
  1. ██████████ 1.00  Reply to Marcus Bell about: If your Type II report slips past September 30, will you let us exit the pilot…
-    Asked 32 days ago in 'Re: Security review follow-ups'; no reply from you since.
+    Asked 31 days ago in 'Re: Security review follow-ups'; no reply from you since.
 
  2. ██████████ 0.95  Deliver to Elena Vasquez: I will send you our SOC 2 Type II report by September 30.
-    You promised this to Elena Vasquez; it was due 2026-09-30 and is 4 days late with no delivery recorded.
+    You promised this to Elena Vasquez; it was due 2026-09-30 and is 3 days late with no delivery recorded.
 
- 9. ███████░░░ 0.70  Re-engage Acme Robotics: quiet for 32 days with 11 open items
+ 8. ███████░░░ 0.70  Re-engage Acme Robotics: quiet for 31 days with 11 open items
     Nobody at Acme Robotics has written or met with you since Marcus Bell on 2026-09-02, and 11 asks,
     commitments or objections involving them are still open.
 ```
 
-**Until the integration PR lands**, `today --date 2026-10-03` returns an empty queue on a fresh import (it reads facts as known on that date, and they were all recorded today). Run `yrm today` with no date instead; ages are then counted from the real date, as in the excerpt above, which was captured on October 4.
+`--date` ranks that day using everything known now. `--as-of <date>` adds the time machine: only what had been recorded by then. On a fresh import that is nothing, since every fact was recorded today (see [#35](https://github.com/YAGNI-App/YRM/issues/35)).
 
 Say: "Three things, each with a reason you can check. Marcus asked a yes-or-no question a month ago and never got an answer; that is why Acme went quiet. We promised Elena the Type II report and missed it. And nobody at Acme has written since."
 
@@ -197,7 +184,7 @@ yrm attention:explain unanswered-ask:<fact-id>
 ```
 unanswered-ask:01M43TY7PDX0R67QRR2EA0R9Q5  (score 1.00, by attention/unanswered-ask)
 Action: Reply to Marcus Bell about: If your Type II report slips past September 30, will you let us exit the pilot…
-Reason: Asked 32 days ago in 'Re: Security review follow-ups'; no reply from you since.
+Reason: Asked 31 days ago in 'Re: Security review follow-ups'; no reply from you since.
 
 Evidence: 1 fact(s), 1 event(s)
   fact 01M43TY7PDX0R67QRR2EA0R9Q5 [ask/asked, rule extract v1, confidence 0.6]
@@ -302,8 +289,8 @@ Show [`docs/BACKLOG.md`](BACKLOG.md) and the [issues](https://github.com/YAGNI-A
 Delete the local database and import again:
 
 ```sh
-rm -rf .yrm/local          # in the demo directory (fixtures/acme or /tmp/yrm-demo)
-yrm import <repo>/fixtures/acme
+rm -rf .yrm/local          # in fixtures/acme
+yrm import .
 ```
 
 `.yrm/local/` holds only the SQLite file. The config stays. Ids change after a reset, so re-copy them for steps 4, 5 and 6.
@@ -314,12 +301,12 @@ To remove the MCP server from Claude Code afterwards: `claude mcp remove yrm`.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Dozens of `[warn] model-triage: triage call failed (ALL_ROUTES_FAILED)` lines during import | Routes point at Ollama and it is not running | Set `models: { routes: {} }`, or start Ollama (`ollama serve`, `ollama pull qwen3:8b`). The integration PR quiets this. |
-| `today` says "Follow up with Jack Collins on ..." and Marcus's unanswered ask is missing | `settings.attention` / `settings.resolve` self settings missing, so YRM does not know which person is you | Add the `settings` block from Setup, `rm -rf .yrm/local`, import again. |
-| `today --date 2026-10-03` prints "Nothing needs you today" | Facts were recorded today, after the requested date | Run `yrm today` with no date (fixed by the integration PR). |
+| One `[warn] model-triage: triage call failed (ALL_ROUTES_FAILED)` line during import | Routes point at Ollama and it is not running | Harmless; rules still run. Start Ollama (`ollama serve`, `ollama pull qwen3:8b`) to use it. |
+| `today` says "Follow up with Jack Collins on ..." and Marcus's unanswered ask is missing | `tenant.selfAddresses` does not include `jack@yagni.example`, so YRM does not know which person is you | Use `fixtures/acme/yrm.config.ts`, `rm -rf .yrm/local`, import again. |
+| `today --date 2026-10-03 --as-of ...` prints "Nothing needs you today" | Facts were recorded today, after the `--as-of` time | Drop `--as-of`. Tracked in #35. |
 | `"priya" matches 2 entities; pass an id` | Two addresses, not yet merged | Expected before step 5. Use the id from `yrm who priya`. |
 | `facts --as-of <date>` prints `(no facts)` | Backfilled facts carry the import time as belief time | Use `--at`. Tracked in #35. |
 | `unknown command "web"` | `@yrm/ext-web` not on `main` yet | Skip step 10. |
-| MCP tools return `MCP_HOST_NOT_BOUND` | Server started outside the CLI host | Start it with `yrm serve` from the demo directory, as in step 9. |
+| MCP tools return `MCP_HOST_NOT_BOUND` | A custom embedding loaded extensions but never called `host.start()` | Start it with `yrm serve` from the demo directory, as in step 9. |
 | `who` or `facts` tables wrap and are unreadable | Terminal too narrow | Widen to 160+ columns or reduce font size. |
 | Anything else | | `yrm doctor`, then `yrm <command> --verbose`. Reset and retry. |

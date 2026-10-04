@@ -51,12 +51,22 @@ export {
   type ExtractResult,
   type HostContext,
   type IngestResult,
+  type RankOptions,
   type ResolveResult,
   type RunSummary,
   type StageOptions,
 } from "./pipeline.ts";
 // ConfigError is deliberately not re-exported here; see errors.ts.
 export { ExtensionError, HookError } from "./errors.ts";
+
+/**
+ * Topic on the extension event bus (`yrm.events`) carrying the `Host` itself,
+ * emitted at the start of `host.start()` once every extension has loaded.
+ * Extensions that need more than `ExtensionAPI` (ranking, context bundles,
+ * the full tool registry) subscribe at load time. Extensions loaded after
+ * `start()` do not see it.
+ */
+export const HOST_READY_TOPIC = "host:ready";
 
 export interface HostDeps {
   store: Store;
@@ -84,9 +94,9 @@ export interface Host extends stages.HostContext {
   resolve(event: SourceEvent): Promise<stages.ResolveResult>;
   extract(event: SourceEvent, opts?: stages.StageOptions): Promise<stages.ExtractResult>;
   project(entityIds: Iterable<string>): Promise<Entity[]>;
-  rank(today?: string): Promise<QueueItem[]>;
+  rank(today?: string, opts?: stages.RankOptions): Promise<QueueItem[]>;
   buildContext(request: ContextRequest): Promise<ContextBundle>;
-  /** Fires `host:start`. */
+  /** Emits `HOST_READY_TOPIC` with the host on the event bus, then fires `host:start`. Once per start. */
   start(): Promise<void>;
   /** Fires `host:stop`. */
   stop(): Promise<void>;
@@ -133,11 +143,12 @@ export function createHost(config: YrmConfig, deps: HostDeps): Host {
     resolve: (event) => stages.resolve(ctx, event),
     extract: (event, opts) => stages.extract(ctx, event, opts),
     project: (ids) => stages.project(ctx, ids),
-    rank: (today) => stages.rank(ctx, today),
+    rank: (today, opts) => stages.rank(ctx, today, opts),
     buildContext: (request) => stages.buildContext(ctx, request),
     async start() {
       if (started) return;
       started = true;
+      events.emit(HOST_READY_TOPIC, host);
       await hooks.emit("host:start", stages.hookContext(ctx));
     },
     async stop() {

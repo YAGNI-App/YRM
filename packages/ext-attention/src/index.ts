@@ -38,7 +38,7 @@ export const manifest: ExtensionManifest = {
  * what the rules produced, and the brief re-scores the top of that list.
  */
 export default function attention(yrm: ExtensionAPI): void {
-  const settings = readSettings(yrm.config.get<Record<string, unknown>>());
+  const settings = readSettings(yrm.config.get<Record<string, unknown>>(), yrm.config.tenant);
   for (const [name, rule] of RULES) {
     if (!settings.disable.includes(name)) yrm.registerRanker(ruleRanker(name, rule, settings));
   }

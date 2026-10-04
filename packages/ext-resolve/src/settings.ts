@@ -7,12 +7,15 @@ export interface ResolveSettings {
   /** Merge same-name suggestions without asking. Off by default. */
   autoMergeSameName: boolean;
   /**
-   * The tenant's own domains. Extensions cannot read `tenant.selfDomains`, so
-   * when this is unset the self organization is created from the first
-   * non-freemail domain of a participant the host marked `self`.
+   * The tenant's own domains. Defaults to `tenant.selfDomains`; set it here
+   * only to override. When neither is set, the self organization is created
+   * from the first non-freemail domain of a participant the host marked `self`.
    */
   selfDomains: string[];
-  /** Name for the self organization. Defaults to a name derived from its domain. */
+  /**
+   * Name for the self organization. Defaults to a name derived from its domain.
+   * Not taken from `tenant.name`, which is usually the person (`yrm init --name Jack`).
+   */
   selfOrgName?: string;
 }
 
@@ -21,10 +24,11 @@ function strings(v: unknown): string[] {
 }
 
 export function readSettings(config: ConfigReader): ResolveSettings {
+  const selfDomains = config.get("selfDomains");
   const out: ResolveSettings = {
     freemailDomains: strings(config.get("freemailDomains")),
     autoMergeSameName: config.get("autoMergeSameName") === true,
-    selfDomains: strings(config.get("selfDomains")),
+    selfDomains: strings(selfDomains === undefined ? config.tenant.selfDomains : selfDomains),
   };
   const name = config.get("selfOrgName") ?? config.get("tenantName");
   if (typeof name === "string" && name.trim()) out.selfOrgName = name.trim();

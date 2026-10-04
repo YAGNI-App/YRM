@@ -165,7 +165,7 @@ describe("pipeline", () => {
     const { host, store, threads } = await setup();
     const summary = await host.run(undefined, { today: "2026-09-04" });
 
-    expect(summary.sources).toEqual([{ name: "fake", created: 3, duplicates: 1, dropped: 1 }]);
+    expect(summary.sources).toEqual([{ name: "fake", created: 3, duplicates: 1, dropped: 1, skipped: 0 }]);
     expect(summary.events).toBe(3);
     expect(store.events.size).toBe(3);
     expect(await store.getCursor("local", "fake")).toBe("after-m3");
@@ -217,7 +217,7 @@ describe("pipeline", () => {
     const { host, store } = await setup();
     await host.run();
     const again = await host.run("fake");
-    expect(again.sources).toEqual([{ name: "fake", created: 0, duplicates: 4, dropped: 1 }]);
+    expect(again.sources).toEqual([{ name: "fake", created: 0, duplicates: 4, dropped: 1, skipped: 0 }]);
     expect(again.facts).toBe(0);
     expect(store.events.size).toBe(3);
     expect(store.facts.size).toBe(1);

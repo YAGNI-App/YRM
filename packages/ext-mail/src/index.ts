@@ -115,6 +115,7 @@ export async function importMail(path: string, ctx: SyncContext, settings: MailS
   }
   await flush(true);
   if (lastFile !== undefined) await ctx.setCursor(lastFile);
+  if (!settings.keepNoise && stats.noise > 0) ctx.report?.({ dropped: stats.noise });
 
   ctx.log.info("mail import finished", {
     path,

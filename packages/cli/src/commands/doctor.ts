@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { estimateCost, lookupPricing, type ModelPricing, type Route } from "@yrm/core";
+import { estimateCost, lookupPricing, type DescribedRoute, type ModelPricing, type Route } from "@yrm/core";
 import { PROVIDER_NAME as ANTHROPIC } from "@yrm/provider-anthropic";
 import { OpenAICompatibleProvider } from "@yrm/provider-openai";
 import type { Booted } from "../bootstrap.ts";
@@ -173,8 +173,10 @@ export function doctorCommand(env: CliEnv): BuiltinCommand {
       out(s.bold("models"));
       const tiers = [...new Set(["triage", "extract", "synthesize", ...Object.keys(config.models.routes)])];
       const tierRows = tiers.map((t) => {
-        const chain = host.models.describe(t);
-        return [t, chain.length ? chain.map((r) => `${r.provider}/${r.model}`).join(" -> ") : s.dim("(no route)")];
+        // The core Router sets downUntil on hops cooling down after a connection failure.
+        const chain: DescribedRoute[] = host.models.describe(t);
+        const hop = (r: DescribedRoute) => `${r.provider}/${r.model}${r.downUntil ? ` ${s.yellow("down (cooldown)")}` : ""}`;
+        return [t, chain.length ? chain.map(hop).join(" -> ") : s.dim("(no route)")];
       });
       for (const l of table(tierRows, { indent: "  " })) out(l);
       if (config.models.localOnly) out("  localOnly: hosted models are skipped");

@@ -49,8 +49,8 @@ const RESOURCE_ENTITY_LIMIT = 50;
 
 /**
  * Build the extension. Ranking, context bundles, note ingest and `serve` need
- * the host, which `ExtensionAPI` does not expose: pass it here, or emit
- * `HOST_READY_TOPIC` with the host on the extension bus after loading.
+ * the host, which `ExtensionAPI` does not expose: pass it here, or let
+ * `host.start()` announce it under `HOST_READY_TOPIC` (the default path).
  * Store-only tools work either way.
  */
 export function createMcpExtension(options: McpExtensionOptions = {}): ExtensionFactory {
@@ -131,7 +131,7 @@ function serveCommand(yrm: ExtensionAPI, binding: HostBinding, own: Tool[], sett
       if (!host) {
         ctx.log.warn(
           `mcp: no host bound; serving only this extension's tools, and yrm_today, yrm_context and yrm_record_note will fail. ` +
-            `Bind it with createMcpExtension({ host }) or emit "${HOST_READY_TOPIC}".`,
+            `Start the host after loading extensions (it emits "${HOST_READY_TOPIC}"), or use createMcpExtension({ host }).`,
         );
       }
       const tools = host ? host.registry.tools.list() : own;

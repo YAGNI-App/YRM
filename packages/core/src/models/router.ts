@@ -34,6 +34,11 @@ export interface RouterOptions {
 
 /** Used for cost estimates when neither the request nor the route sets maxTokens. */
 const DEFAULT_MAX_TOKENS = 4096;
+/** How long a hop that failed to connect is skipped; `policy.cooldownMs` overrides. */
+export const DEFAULT_COOLDOWN_MS = 60_000;
+
+/** A route as `Router.describe()` reports it: `downUntil` is set while the hop is cooling down. */
+export type DescribedRoute = Route & { downUntil?: string };
 
 export class Router implements ModelRouter {
   private readonly policy: RoutingPolicy;
@@ -43,6 +48,8 @@ export class Router implements ModelRouter {
   private readonly now: () => Date;
   private readonly tenantId: string;
   private readonly modelCache = new Map<string, Promise<ModelInfo[]>>();
+  /** `provider/model` to the epoch ms until which the hop is skipped. */
+  private readonly downUntil = new Map<string, number>();
 
   constructor(opts: RouterOptions) {
     this.policy = opts.policy;
@@ -53,8 +60,11 @@ export class Router implements ModelRouter {
     this.tenantId = opts.tenantId ?? "local";
   }
 
-  describe(tier: Tier): Route[] {
-    return (this.policy.routes[tier] ?? []).map((r) => ({ ...r }));
+  describe(tier: Tier): DescribedRoute[] {
+    return (this.policy.routes[tier] ?? []).map((r) => {
+      const until = this.cooldownUntil(r);
+      return until === undefined ? { ...r } : { ...r, downUntil: new Date(until).toISOString() };
+    });
   }
 
   async spend(): Promise<{ usd: number; byTier: Record<string, number> }> {
@@ -101,6 +111,7 @@ export class Router implements ModelRouter {
         res = await hop.provider.complete(route.model, hopReq, signal);
       } catch (err) {
         if (signal?.aborted || !isRetryable(err)) throw err;
+        this.noteFailure(route, err);
         attempts.push(fail(route, err));
         lastError = err;
         continue;
@@ -176,6 +187,7 @@ export class Router implements ModelRouter {
         res = await embed(route.model, req, signal);
       } catch (err) {
         if (signal?.aborted || !isRetryable(err)) throw err;
+        this.noteFailure(route, err);
         attempts.push(fail(route, err));
         lastError = err;
         continue;
@@ -232,6 +244,11 @@ export class Router implements ModelRouter {
     route: Route,
     attempts: RouteAttempt[],
   ): Promise<{ provider: ModelProvider; pricing: ModelPricing | undefined } | null> {
+    const until = this.cooldownUntil(route);
+    if (until !== undefined) {
+      attempts.push(skip(route, `down (cooldown until ${new Date(until).toISOString()})`));
+      return null;
+    }
     const provider = this.providers.get(route.provider);
     if (!provider) {
       attempts.push(skip(route, `provider ${route.provider} is not registered`));
@@ -243,6 +260,25 @@ export class Router implements ModelRouter {
       return null;
     }
     return { provider, pricing: route.pricing ?? info?.pricing };
+  }
+
+  /** Epoch ms the hop is down until, or undefined when it is usable. Expired entries are dropped. */
+  private cooldownUntil(route: Route): number | undefined {
+    const key = hopKey(route);
+    const until = this.downUntil.get(key);
+    if (until === undefined) return undefined;
+    if (this.now().getTime() >= until) {
+      this.downUntil.delete(key);
+      return undefined;
+    }
+    return until;
+  }
+
+  /** Only connection failures trip the breaker; rate limits and 5xx mean the server is there. */
+  private noteFailure(route: Route, err: unknown): void {
+    const ms = this.policy.cooldownMs ?? DEFAULT_COOLDOWN_MS;
+    if (ms <= 0 || !isConnectionFailure(err)) return;
+    this.downUntil.set(hopKey(route), this.now().getTime() + ms);
   }
 
   private modelsOf(provider: ModelProvider): Promise<ModelInfo[]> {
@@ -283,6 +319,16 @@ function isRetryable(err: unknown): boolean {
   if (err instanceof ModelProviderError) return err.retryable;
   if (err instanceof Error && err.name === "AbortError") return false;
   return true;
+}
+
+/** A provider that says NETWORK, or anything thrown that is not a provider error (a fetch TypeError). */
+function isConnectionFailure(err: unknown): boolean {
+  if (err instanceof ModelProviderError) return err.code === "NETWORK";
+  return !(err instanceof Error && err.name === "AbortError");
+}
+
+function hopKey(route: Route): string {
+  return `${route.provider}/${route.model}`;
 }
 
 function skip(route: Route, reason: string): RouteAttempt {

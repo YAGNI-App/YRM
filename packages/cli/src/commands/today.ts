@@ -2,6 +2,7 @@ import { todayIn, type QueueItem } from "@yrm/core";
 import { flagString } from "../argv.ts";
 import { booted, type BuiltinCommand, type CliEnv } from "../env.ts";
 import { createStyle, isoDate, plural, scoreBar, type Style } from "../format.ts";
+import { parseInstant } from "./facts.ts";
 
 export interface BriefOptions {
   date: string;
@@ -37,7 +38,10 @@ export function todayCommand(env: CliEnv): BuiltinCommand {
   return {
     name: "today",
     description: "Show today's attention queue",
-    usage: "yrm today [--date YYYY-MM-DD] [--json]",
+    usage:
+      "yrm today [--date YYYY-MM-DD] [--as-of <iso>] [--json]\n" +
+      "  --date   the day to rank for (default today in the tenant timezone), using everything known now\n" +
+      "  --as-of  rank on only what YRM had recorded by this time (a date means the end of that day, UTC)",
     needsHost: true,
     async run(ctx) {
       const { host, config } = booted(env);
@@ -46,7 +50,15 @@ export function todayCommand(env: CliEnv): BuiltinCommand {
         ctx.stderr(`--date must be YYYY-MM-DD, got "${date}"`);
         return 1;
       }
-      const items = await host.rank(date);
+      const asOfRaw = flagString(ctx.flags, "as-of");
+      let asOf: string | undefined;
+      try {
+        if (asOfRaw !== undefined) asOf = parseInstant(asOfRaw, "--as-of");
+      } catch (err) {
+        ctx.stderr(err instanceof Error ? err.message : String(err));
+        return 1;
+      }
+      const items = await host.rank(date, asOf !== undefined ? { asOf } : {});
       if (ctx.flags["json"] === true) {
         ctx.stdout(JSON.stringify(items, null, 2));
         return 0;

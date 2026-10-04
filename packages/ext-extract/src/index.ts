@@ -15,9 +15,13 @@ export const manifest: ExtensionManifest = {
  * its verdict to kv), then the model extractor (reads that verdict).
  */
 export default function extract(yrm: ExtensionAPI): void {
+  const warned = new Set<string>();
+  yrm.on("host:start", async () => {
+    warned.clear();
+  });
   yrm.registerExtractor(createRuleExtractor(yrm.store));
-  yrm.registerExtractor(createTriageExtractor({ store: yrm.store, models: yrm.models }));
-  yrm.registerExtractor(createModelExtractor({ store: yrm.store, models: yrm.models }));
+  yrm.registerExtractor(createTriageExtractor({ store: yrm.store, models: yrm.models, warned }));
+  yrm.registerExtractor(createModelExtractor({ store: yrm.store, models: yrm.models, warned }));
   yrm.on("extract:after", async (_ctx, event, facts) => dedupeFacts(facts, event.id));
   yrm.registerCommand(evalCommand());
 }
@@ -49,6 +53,7 @@ export {
   triageKey,
   validateModelFacts,
   type TriageResult,
+  type WarnedTiers,
 } from "./model.ts";
 export * from "./prompts.ts";
 export {

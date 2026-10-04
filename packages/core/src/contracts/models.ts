@@ -109,6 +109,12 @@ export interface RoutingPolicy {
   localOnly?: boolean;
   /** Per-tenant monthly ceiling. Router refuses calls past it. */
   monthlyBudgetUsd?: number;
+  /**
+   * After a hop fails to connect, skip it without a request for this long.
+   * Default 60000. 0 disables. Keeps an unreachable local model from costing
+   * a connection attempt per event.
+   */
+  cooldownMs?: number;
 }
 
 export interface ModelRouter {

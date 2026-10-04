@@ -133,8 +133,14 @@ export interface RankContext {
   tenantId: string;
   store: Store;
   models: ModelRouter;
-  /** Today's date in the tenant's timezone, ISO date. */
+  /** Today's date in the tenant's timezone, ISO date. Rankers treat the end of this day as "now" in world time. */
   today: string;
+  /**
+   * Transaction time: rank on what was known at this instant. Unset means now,
+   * so ranking a past `today` uses everything recorded since. Set both to ask
+   * "what would the queue have shown then".
+   */
+  asOf?: string;
   log: Logger;
 }
 

@@ -177,20 +177,36 @@ export interface ResolveResult {
   entities: Entity[];
   /** Participants newly assigned in this pass. */
   assigned: number;
+  /** Entities created by resolvers in this pass (each announced via `entity:proposed`). */
+  created: Entity[];
+  /** Facts recorded by resolvers and `resolve:after` handlers (each announced via `fact:recorded`). */
+  facts: Fact[];
+}
+
+interface Recorded {
+  entities: Entity[];
+  facts: Fact[];
 }
 
 /**
- * A view of the store that remembers every entity created through it.
- * Resolvers create entities through `ResolveContext.store`; this is how the
- * host learns which ones are new without widening the Resolver contract.
+ * A view of the store that remembers every entity created and fact recorded
+ * through it. Resolvers write through `ResolveContext.store`; this is how the
+ * host learns what is new without widening the Resolver contract.
  */
-function recordingStore(store: Store, created: Entity[]): Store {
+function recordingStore(store: Store, recorded: Recorded): Store {
   return new Proxy(store, {
     get(target, prop) {
       if (prop === "createEntity") {
         return async (entity: NewEntity): Promise<Entity> => {
           const out = await target.createEntity(entity);
-          created.push(out);
+          recorded.entities.push(out);
+          return out;
+        };
+      }
+      if (prop === "recordFact") {
+        return async (fact: NewFact): Promise<Fact> => {
+          const out = await target.recordFact(fact);
+          recorded.facts.push(out);
           return out;
         };
       }
@@ -202,8 +218,8 @@ function recordingStore(store: Store, created: Entity[]): Store {
 
 export async function resolve(ctx: HostContext, event: SourceEvent): Promise<ResolveResult> {
   const tenantId = ctx.config.tenant.id;
-  const createdEntities: Entity[] = [];
-  const store = recordingStore(ctx.store, createdEntities);
+  const recorded: Recorded = { entities: [], facts: [] };
+  const store = recordingStore(ctx.store, recorded);
   const participants = event.participants.map((p) => ({ ...p }));
   const fresh: Array<{ index: number; entityId: string }> = [];
   const unresolved = (): number[] =>
@@ -242,13 +258,15 @@ export async function resolve(ctx: HostContext, event: SourceEvent): Promise<Res
   const hctx = hookContext(ctx);
   // Fired for every entity a resolver created, including ones created already
   // confirmed (the tenant's own organization); `entity.status` says which.
-  for (const created of createdEntities) {
+  for (const created of recorded.entities) {
     const current = (await ctx.store.getEntity(created.id)) ?? created;
     await ctx.hooks.emit("entity:proposed", hctx, current);
   }
   const entities = await entitiesOf(ctx, updated);
-  await ctx.hooks.emit("resolve:after", hctx, updated, entities);
-  return { event: updated, entities, assigned: fresh.length };
+  // resolve:after handlers (same-name suggestions) also record facts; count those too.
+  await ctx.hooks.emit("resolve:after", { ...hctx, store }, updated, entities);
+  for (const fact of recorded.facts) await ctx.hooks.emit("fact:recorded", hctx, fact);
+  return { event: updated, entities, assigned: fresh.length, created: recorded.entities, facts: recorded.facts };
 }
 
 async function entitiesOf(ctx: HostContext, event: SourceEvent): Promise<Entity[]> {
@@ -421,7 +439,12 @@ export function sortAndDedupe(items: QueueItem[]): QueueItem[] {
   return sorted.filter((q) => (seen.has(q.key) ? false : (seen.add(q.key), true)));
 }
 
-export async function rank(ctx: HostContext, today?: string): Promise<QueueItem[]> {
+export interface RankOptions {
+  /** Transaction time to rank as of; see `RankContext.asOf`. */
+  asOf?: string;
+}
+
+export async function rank(ctx: HostContext, today?: string, opts: RankOptions = {}): Promise<QueueItem[]> {
   const hctx = hookContext(ctx);
   const rctx: Omit<RankContext, "log"> = {
     tenantId: ctx.config.tenant.id,
@@ -429,6 +452,7 @@ export async function rank(ctx: HostContext, today?: string): Promise<QueueItem[
     models: ctx.models,
     today: today ?? todayIn(ctx.config.tenant.timezone),
   };
+  if (opts.asOf !== undefined) rctx.asOf = opts.asOf;
   let candidates = await ctx.hooks.pipe("queue:before_rank", hctx, []);
   for (const ranker of ctx.registry.rankers.list()) {
     try {
@@ -448,6 +472,7 @@ export interface RunSummary {
   events: number;
   /** Participants newly linked to entities. */
   resolved: number;
+  /** Facts recorded during resolve and extract. */
   facts: number;
   /** Events an `extract:before` hook skipped. */
   extractSkipped: number;
@@ -470,17 +495,18 @@ export async function run(ctx: HostContext, sourceName?: string, opts: StageOpti
 
   mark = performance.now();
   let resolved = 0;
+  let facts = 0;
   const resolvedEvents: SourceEvent[] = [];
   for (const e of created) {
     const r = await resolve(ctx, e);
     resolved += r.assigned;
+    facts += r.facts.length;
     for (const ent of r.entities) touched.add(ent.id);
     resolvedEvents.push(r.event);
   }
   const resolveMs = performance.now() - mark;
 
   mark = performance.now();
-  let facts = 0;
   let extractSkipped = 0;
   for (const e of resolvedEvents) {
     const r = await extract(ctx, e, opts);

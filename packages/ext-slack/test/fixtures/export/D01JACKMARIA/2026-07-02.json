@@ -1,0 +1,14 @@
+[
+  {
+    "type": "message",
+    "ts": "1783008000.000100",
+    "user": "U02MARIA",
+    "text": "Can we talk budget tomorrow?"
+  },
+  {
+    "type": "message",
+    "ts": "1783008300.000200",
+    "user": "U01JACK",
+    "text": "Yes, 10am works."
+  }
+]

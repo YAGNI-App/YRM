@@ -6,7 +6,7 @@ The tools are registered with `yrm.registerTool`, so in-process agents get the s
 
 ## Connect
 
-Start the server over stdio. Logs go to stderr; stdout is the transport.
+Over stdio (the default) or Streamable HTTP (`--http`, below). On stdio, logs go to stderr; stdout is the transport.
 
 ```sh
 bun run /path/to/YRM/packages/cli/src/main.ts serve        # --mcp is the default
@@ -51,6 +51,38 @@ Run it from the YRM project directory, or the one holding your `yrm.config.ts`, 
 }
 ```
 
+### Over HTTP
+
+```sh
+yrm serve --http 7788                     # http://127.0.0.1:7788/mcp
+yrm serve --http 7788 --host 0.0.0.0      # beyond loopback: needs a token
+```
+
+The endpoint is `/mcp` (Streamable HTTP, stateless, JSON responses); `/healthz` answers without authentication. Every request needs `Authorization: Bearer <token>`, except from loopback while `settings.auth.allowLoopback` is true (the default), where calls run as `settings.mcp.principal` or `agent:mcp/http`. A non-loopback bind is refused until at least one token exists. See `@yrm/ext-auth` for the token settings.
+
+Create a token for the agent and add it to Claude Code:
+
+```sh
+yrm auth token create claude-code --principal agent:claude-code --scopes read
+claude mcp add --transport http yrm http://127.0.0.1:7788/mcp --header "Authorization: Bearer yrm_..."
+```
+
+Or in `.mcp.json` (Claude Code expands `${VAR}`):
+
+```json
+{
+  "mcpServers": {
+    "yrm": {
+      "type": "http",
+      "url": "http://127.0.0.1:7788/mcp",
+      "headers": { "Authorization": "Bearer ${YRM_TOKEN}" }
+    }
+  }
+}
+```
+
+The token decides who the caller is and what it may do. Its `principal` becomes `origin.by` on every write. Without the `write` scope, write tools stay listed but refuse with `WRITE_SCOPE_REQUIRED`, even with `confirm: true`. Give agents that read mail a read-only token unless a person approves each write.
+
 ## Tools
 
 | Tool | Kind | Use it for |
@@ -91,7 +123,7 @@ Lists default to 50 rows (`limit`, max 200).
 
 ## Writes need confirmation
 
-Hosts confirm writes with the user. MCP gives the server no way to prompt, so every write tool takes `confirm: true` and refuses without it, saying nothing was written. The agent should show the user what it is about to record, get approval, and call again with `confirm: true`.
+Hosts confirm writes with the user. MCP gives the server no way to prompt, so every write tool takes `confirm: true` and refuses without it, saying nothing was written. The agent should show the user what it is about to record, get approval, and call again with `confirm: true`. The model sets that flag, so it is a prompt to ask, not a human gate: an agent misled by text in a mail can set it too. The hard limit is the token's `write` scope over HTTP.
 
 Facts written through MCP have `origin: { kind: "human", by: <principal>, version: "mcp/1" }` and confidence 1, so they outrank model and rule facts and are never overturned by re-extraction. Every fact must cite an existing event: write a note with `yrm_record_note` first if nothing in the log says it yet.
 
@@ -103,7 +135,8 @@ settings: {
   mcp: {
     // Skip confirm: true. Only for trusted, non-interactive agents.
     unattendedWrites: false,
-    // Who MCP callers act as. Default: "agent:mcp/<client name>".
+    // Who stdio and loopback HTTP callers act as. Default: "agent:mcp/<client name>" (stdio), "agent:mcp/http" (HTTP).
+    // Token callers act as their token's principal.
     principal: "user:jack",
   },
 },
@@ -121,4 +154,6 @@ await host.use(createMcpExtension({ host }), manifest);
 
 Without it, store-only tools still work and the others return a `MCP_HOST_NOT_BOUND` error that says how to fix it.
 
-`serve --http <port>` is planned and exits with code 2 in 0.1.
+## Untrusted content
+
+Event text is written by third parties and may contain instructions aimed at the agent. `yrm_events` and `yrm_thread` results start with an `untrusted` note, and each event's `text` is fenced between `fence.open` and `fence.close` markers carrying a per-call random nonce. The quoted history the mail ingester stripped is never returned. `yrm_context` carries the same note, and its reading guide says so too. See [the threat model](../../docs/SECURITY-MODEL.md).

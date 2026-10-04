@@ -25,6 +25,7 @@ YRM is an open context layer for relationships. The append-only log of source ev
 - Test: `bun test` (colocate tests as `*.test.ts` next to the code, or under `packages/<pkg>/test/`)
 - Both: `bun run check`
 - Run the CLI from source: `bun run yrm -- <command>`
+- Compile the release binary: `bun run build`, then `sh scripts/smoke.sh dist/yrm-bun-<os>-<arch>` (ADR 0011). Code that ships in the binary must not read its own files from disk at runtime; import assets `with { type: "text" }`, and add a new `packages/ext-*` to `BUNDLED` in `packages/cli/src/builtins.ts`.
 
 Tests must not need network or API keys. Mock providers through the `ModelProvider` interface. Fixtures live under `fixtures/`.
 
@@ -33,8 +34,9 @@ Tests must not need network or API keys. Mock providers through the `ModelProvid
 ```
 packages/core            @yrm/core      contracts, store (sqlite), extension host, router, pipeline
 packages/cli             @yrm/cli       the `yrm` command
+packages/store-postgres  @yrm/store-postgres  Postgres Store (loaded by createStore for driver "postgres")
 packages/provider-*      @yrm/provider-*  model providers (anthropic, openai-compatible)
-packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, mcp)
+packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, views, auth, mcp, web, slack)
 fixtures/                synthetic corpora with ground-truth facts, used by tests and demos
 docs/ARCHITECTURE.md     the design
 docs/decisions/          ADRs, numbered, never deleted; superseded ADRs say so at the top

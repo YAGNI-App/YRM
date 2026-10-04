@@ -17,8 +17,23 @@
       },
       "dependencies": {
         "@yrm/core": "workspace:*",
+        "@yrm/ext-attention": "workspace:*",
+        "@yrm/ext-auth": "workspace:*",
+        "@yrm/ext-calendar": "workspace:*",
+        "@yrm/ext-extract": "workspace:*",
+        "@yrm/ext-gmail": "workspace:*",
+        "@yrm/ext-mail": "workspace:*",
+        "@yrm/ext-mcp": "workspace:*",
+        "@yrm/ext-notes": "workspace:*",
+        "@yrm/ext-resolve": "workspace:*",
+        "@yrm/ext-slack": "workspace:*",
+        "@yrm/ext-views": "workspace:*",
+        "@yrm/ext-web": "workspace:*",
         "@yrm/provider-anthropic": "workspace:*",
         "@yrm/provider-openai": "workspace:*",
+      },
+      "optionalDependencies": {
+        "@yrm/store-postgres": "workspace:*",
       },
     },
     "packages/core": {
@@ -27,9 +42,22 @@
       "dependencies": {
         "ulid": "^2.3.0",
       },
+      "peerDependencies": {
+        "@yrm/store-postgres": "*",
+      },
+      "optionalPeers": [
+        "@yrm/store-postgres",
+      ],
     },
     "packages/ext-attention": {
       "name": "@yrm/ext-attention",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
+    "packages/ext-auth": {
+      "name": "@yrm/ext-auth",
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
@@ -70,6 +98,7 @@
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.32.0",
         "@yrm/core": "workspace:*",
+        "@yrm/ext-auth": "workspace:*",
         "zod": "^4.6.5",
       },
     },
@@ -87,11 +116,29 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/ext-slack": {
+      "name": "@yrm/ext-slack",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@yrm/ext-resolve": "workspace:*",
+      },
+    },
+    "packages/ext-views": {
+      "name": "@yrm/ext-views",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/ext-web": {
       "name": "@yrm/ext-web",
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
+        "@yrm/ext-auth": "workspace:*",
       },
     },
     "packages/pi": {
@@ -124,11 +171,24 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/store-postgres": {
+      "name": "@yrm/store-postgres",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+        "postgres": "^3.4.5",
+      },
+      "devDependencies": {
+        "@electric-sql/pglite": "^0.3.0",
+      },
+    },
   },
   "packages": {
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.131.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-9+PepoU7qVMmM70jSahdnfcMHAvAnzhMOLv2W9WjRLO+OG/MAiBETkwKZqv7KIJ1Cj5h8eZ019bHzZaq+Mbepw=="],
 
     "@babel/runtime": ["@babel/runtime@7.29.7", "", {}, "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="],
+
+    "@electric-sql/pglite": ["@electric-sql/pglite@0.3.16", "", {}, "sha512-mZkZfOd9OqTMHsK+1cje8OSzfAQcpD7JmILXTl5ahdempjUDdmg4euf1biDex5/LfQIDJ3gvCu6qDgdnDxfJmA=="],
 
     "@hono/node-server": ["@hono/node-server@2.1.3", "", { "peerDependencies": { "hono": "^4" } }, "sha512-TA//nWMqPhbfdfneACk6t5a9eqbS9lABEPyKn0/xZTah3H3U2XaVg85rJFl0/Fyit0I552YDHgXGVSf3GwqbUw=="],
 
@@ -146,6 +206,8 @@
 
     "@yrm/ext-attention": ["@yrm/ext-attention@workspace:packages/ext-attention"],
 
+    "@yrm/ext-auth": ["@yrm/ext-auth@workspace:packages/ext-auth"],
+
     "@yrm/ext-calendar": ["@yrm/ext-calendar@workspace:packages/ext-calendar"],
 
     "@yrm/ext-extract": ["@yrm/ext-extract@workspace:packages/ext-extract"],
@@ -160,6 +222,10 @@
 
     "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
 
+    "@yrm/ext-slack": ["@yrm/ext-slack@workspace:packages/ext-slack"],
+
+    "@yrm/ext-views": ["@yrm/ext-views@workspace:packages/ext-views"],
+
     "@yrm/ext-web": ["@yrm/ext-web@workspace:packages/ext-web"],
 
     "@yrm/pi": ["@yrm/pi@workspace:packages/pi"],
@@ -167,6 +233,8 @@
     "@yrm/provider-anthropic": ["@yrm/provider-anthropic@workspace:packages/provider-anthropic"],
 
     "@yrm/provider-openai": ["@yrm/provider-openai@workspace:packages/provider-openai"],
+
+    "@yrm/store-postgres": ["@yrm/store-postgres@workspace:packages/store-postgres"],
 
     "accepts": ["accepts@2.0.0", "", { "dependencies": { "mime-types": "^3.0.0", "negotiator": "^1.0.0" } }, "sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng=="],
 
@@ -301,6 +369,8 @@
     "path-to-regexp": ["path-to-regexp@8.4.2", "", {}, "sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA=="],
 
     "pkce-challenge": ["pkce-challenge@5.0.1", "", {}, "sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ=="],
+
+    "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 
     "proxy-addr": ["proxy-addr@2.0.8", "", { "dependencies": { "forwarded": "0.2.0", "ipaddr.js": "1.9.1" } }, "sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ=="],
 

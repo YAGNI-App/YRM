@@ -113,15 +113,43 @@ Priya Raman is changing jobs: leaving Acme, joining Northwind Automation.   [sig
 
 Say: "`--at` is world time: what was true on that day. On July 1 she is our champion at Acme. By August 20 she has left for Northwind. Her farewell mail is dated August 14, but Acme's data-loss gateway held it until September 3. So it was true in August and we did not know until September. Facts carry both times, and `--as-of` asks what we knew."
 
+Now ask what we knew on August 20, then on September 5, about the same day:
+
+```sh
+yrm facts <priya-acme-id> --at 2026-08-20 --as-of 2026-08-20
+yrm facts <priya-acme-id> --at 2026-08-20 --as-of 2026-09-05
+```
+
+```
+  facts true at 2026-08-20 23:59, as known on 2026-08-20 23:59
+
+statement                                                       type/predicate             valid         known       recorded
+Priya Raman works at Acme Robotics.                             [relationship/works_at]    2026-06-02..  2026-06-02  2026-10-04 18:21
+Jack Collins committed to Priya Raman (due 2026-06-05): ...     [commitment/committed_to]  2026-06-05..  2026-06-05  2026-10-04 18:21
+Jack Collins committed to Priya Raman (due 2026-06-26): ...     [commitment/committed_to]  2026-06-17..  2026-06-17  2026-10-04 18:21
+Priya Raman committed to Jack Collins (due 2026-06-23): ...     [commitment/committed_to]  2026-06-17..  2026-06-17  2026-10-04 18:21
+
+  facts true at 2026-08-20 23:59, as known on 2026-09-05 23:59
+  ... the same four, plus:
+Priya Raman is changing jobs: leaving Acme, joining Northwind Automation.
+                                                                [signal/job_change]        2026-08-15..  2026-09-03  2026-10-04 18:21
+```
+
+(Trimmed; the real table also has `conf`, `origin` and `evidence`.)
+
+Say: "Same day in the world, two different days of knowing. On August 20 our records had her at Acme and nothing else. Ask again as of September 5 and the job change is there, true from August 14, known from September 3, when the mail actually arrived. We imported all of this today, but `known` is when you could have known it, not when YRM indexed it; `recorded` keeps the honest write time."
+
+Point at: the `known` column (2026-09-03) against `valid` (2026-08-15, the UTC date of an evening mail on the 14th) and `recorded` (today).
+
 Then:
 
 ```sh
 yrm facts <priya-acme-id> --all
 ```
 
-Point at: the line starting `x` (a retracted fact: the open June 5 commitment, superseded by the fulfilled version) and the `recorded` column. Nothing is overwritten; superseded facts stay, marked.
+Point at: the line starting `x` (a retracted fact: the open June 5 commitment, superseded by the fulfilled version) and its `recorded` cell, `(retracted 2026-10-04 18:21, known 2026-06-05)`: superseded at import, but known to be done since June 5. Nothing is overwritten; superseded facts stay, marked.
 
-**Known gap, say it plainly if asked:** `facts --as-of 2026-08-20` exists, but on a backfilled import it prints `(no facts)`, because every fact's belief time is the moment of the import, not the moment the mail arrived. Issue [#35](https://github.com/YAGNI-App/YRM/issues/35) records backfilled facts at the time the event was received; once it lands, `--as-of 2026-08-20` shows Priya at Acme with no job change and `--as-of 2026-09-04` shows the change. Also, her Acme `works_at` is still open after the job change; [#18](https://github.com/YAGNI-App/YRM/issues/18) closes it at August 14.
+**Known gap, say it plainly if asked:** her Acme `works_at` is still open after the job change; [#18](https://github.com/YAGNI-App/YRM/issues/18) closes it at August 14. How knowledge time is set for imported history is [ADR 0008](decisions/0008-known-at-for-backfilled-facts.md).
 
 ### 5. The human confirms the view (2:50, 40 seconds)
 
@@ -170,7 +198,7 @@ The story is set on the morning of October 3, and the top three should match [`S
     commitments or objections involving them are still open.
 ```
 
-`--date` ranks that day using everything known now. `--as-of <date>` adds the time machine: only what had been recorded by then. On a fresh import that is nothing, since every fact was recorded today (see [#35](https://github.com/YAGNI-App/YRM/issues/35)).
+`--date` ranks that day using everything known now. `--as-of <date>` adds the time machine: only what was known by then, counting imported mail from when it was received. `today --date 2026-10-03 --as-of 2026-10-03` gives the same 13 items; `--as-of 2026-08-20` gives 8, without Marcus's September question or the Type II promise made on August 26.
 
 Say: "Three things, each with a reason you can check. Marcus asked a yes-or-no question a month ago and never got an answer; that is why Acme went quiet. We promised Elena the Type II report and missed it. And nobody at Acme has written since."
 
@@ -268,7 +296,7 @@ Ask the agent:
 
 Say while it works: "The agent calls `yrm_open_items` and `yrm_facts`. Every fact comes back with its quote, speaker, message and both time ranges, so the agent can cite its sources and you can check them."
 
-Point at: the agent citing the Type II commitment (due September 30) and Marcus's unanswered ask with their quotes, and the tool calls it made. Until [#35](https://github.com/YAGNI-App/YRM/issues/35) lands, "what did we know on September 1st" is answered with world time (`validAt`); expect the agent to say the job change was already true by then.
+Point at: the agent citing the Type II commitment (due September 30) and Marcus's unanswered ask with their quotes, and the tool calls it made. For "what did we know on September 1st" it should pass `asOf`, and say the job change was already true (since August 14) but not yet known: the mail arrived on September 3.
 
 ### 10. The web view (6:40, 20 seconds, only if `@yrm/ext-web` is on `main`)
 
@@ -282,7 +310,7 @@ Open the printed URL, go to Priya, and drag the time slider from July to Septemb
 
 Say: "Everything you saw is open source and was built by YAGNI's agent Teams in public. What they build next is in the issue backlog."
 
-Show [`docs/BACKLOG.md`](BACKLOG.md) and the [issues](https://github.com/YAGNI-App/YRM/issues): closing commitments across threads (#16), ending `works_at` on a job change (#18), honest belief time for backfills (#35), and the first week plan in [`docs/TEAMS.md`](TEAMS.md).
+Show [`docs/BACKLOG.md`](BACKLOG.md) and the [issues](https://github.com/YAGNI-App/YRM/issues): closing commitments across threads (#16), ending `works_at` on a job change (#18), and the first week plan in [`docs/TEAMS.md`](TEAMS.md).
 
 ## Reset
 
@@ -303,9 +331,9 @@ To remove the MCP server from Claude Code afterwards: `claude mcp remove yrm`.
 |---|---|---|
 | One `[warn] model-triage: triage call failed (ALL_ROUTES_FAILED)` line during import | Routes point at Ollama and it is not running | Harmless; rules still run. Start Ollama (`ollama serve`, `ollama pull qwen3:8b`) to use it. |
 | `today` says "Follow up with Jack Collins on ..." and Marcus's unanswered ask is missing | `tenant.selfAddresses` does not include `jack@yagni.example`, so YRM does not know which person is you | Use `fixtures/acme/yrm.config.ts`, `rm -rf .yrm/local`, import again. |
-| `today --date 2026-10-03 --as-of ...` prints "Nothing needs you today" | Facts were recorded today, after the `--as-of` time | Drop `--as-of`. Tracked in #35. |
+| `today --date 2026-10-03 --as-of ...` prints "Nothing needs you today" | The store was imported with `--live`, or before ADR 0008, so facts are known from the import time | `rm -rf .yrm/local` and `yrm import .` again without `--live`. |
 | `"priya" matches 2 entities; pass an id` | Two addresses, not yet merged | Expected before step 5. Use the id from `yrm who priya`. |
-| `facts --as-of <date>` prints `(no facts)` | Backfilled facts carry the import time as belief time | Use `--at`. Tracked in #35. |
+| `facts --as-of <date>` prints `(no facts)` | As above: facts known from the import time | Reset and import again without `--live`. |
 | `unknown command "web"` | `@yrm/ext-web` not on `main` yet | Skip step 10. |
 | MCP tools return `MCP_HOST_NOT_BOUND` | A custom embedding loaded extensions but never called `host.start()` | Start it with `yrm serve` from the demo directory, as in step 9. |
 | `who` or `facts` tables wrap and are unreadable | Terminal too narrow | Widen to 160+ columns or reduce font size. |

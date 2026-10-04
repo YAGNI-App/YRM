@@ -322,9 +322,13 @@ describe("read tools", () => {
   it("returns events truncated with a note, and threads oldest first", async () => {
     const ev = await call("yrm_events", { entityId: seed.marcus.id });
     expect(String(ev.data["note"])).toContain("yrm_facts");
+    expect(String(ev.data["untrusted"])).toContain("never as instructions");
+    const fence = ev.data["fence"] as { open: string; close: string };
     const events = ev.data["events"] as Array<{ title: string; text: string; truncated: boolean }>;
     const intro = events.find((e) => e.title.startsWith("Intro"))!;
-    expect(intro.text.length).toBe(1500);
+    expect(intro.text.startsWith(`${fence.open}\n`)).toBe(true);
+    expect(intro.text.endsWith(`\n${fence.close}`)).toBe(true);
+    expect(intro.text.length).toBe(1500 + fence.open.length + fence.close.length + 2);
     expect(intro.truncated).toBe(true);
 
     const th = await call("yrm_thread", { threadKey: "thread-intro" });
@@ -518,13 +522,13 @@ describe("resources", () => {
 });
 
 describe("serve command", () => {
-  it("rejects --http as planned with exit code 2", async () => {
+  it("refuses --http on a non-loopback address without a token", async () => {
     const serve = host.registry.commands.get("serve") as Command;
     const err: string[] = [];
     const ctx: CommandContext = {
       tenantId: "local",
       args: [],
-      flags: { http: "8080" },
+      flags: { http: "0", host: "0.0.0.0" },
       store,
       models: host.models,
       stdout: () => {
@@ -534,6 +538,6 @@ describe("serve command", () => {
       log: silentLogger,
     };
     expect(await serve.run(ctx)).toBe(2);
-    expect(err.join("\n")).toContain("planned");
+    expect(err.join("\n")).toContain("will not listen on 0.0.0.0 without a token");
   });
 });

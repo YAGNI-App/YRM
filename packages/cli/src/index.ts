@@ -11,7 +11,7 @@ export {
   type BuiltinStatus,
 } from "./bootstrap.ts";
 export { BUILTINS, SOURCE_PACKAGES } from "./builtins.ts";
-export { SqliteUsageSink } from "./usage-sink.ts";
+export { SqliteUsageSink, StoreUsageSink } from "./usage-sink.ts";
 export { createStyle, scoreBar, table, type Style } from "./format.ts";
 export { renderConfig, type InitOptions } from "./commands/init.ts";
 export { formatImportSummary, importAndProcess, planImport, type ImportStep, type ImportSummary } from "./commands/import.ts";

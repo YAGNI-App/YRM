@@ -46,6 +46,7 @@ export async function explainItem(store: Store, it: QueueItem, timezone = "UTC")
     out.push(`    ${f.statement}`);
     out.push(
       `    valid ${f.validFrom.slice(0, 10)}${f.validTo ? `..${f.validTo.slice(0, 10)}` : ""}, recorded ${f.recordedAt.slice(0, 10)}` +
+        (f.knownAt && f.knownAt.slice(0, 10) !== f.recordedAt.slice(0, 10) ? `, known ${f.knownAt.slice(0, 10)}` : "") +
         (f.supersedes ? `, supersedes ${f.supersedes}` : ""),
     );
     for (const p of f.provenance) {

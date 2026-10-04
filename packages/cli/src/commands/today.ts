@@ -41,7 +41,7 @@ export function todayCommand(env: CliEnv): BuiltinCommand {
     usage:
       "yrm today [--date YYYY-MM-DD] [--as-of <iso>] [--json]\n" +
       "  --date   the day to rank for (default today in the tenant timezone), using everything known now\n" +
-      "  --as-of  rank on only what YRM had recorded by this time (a date means the end of that day, UTC)",
+      "  --as-of  rank on only what we knew by this time (for imported mail, by when it was received; a date means the end of that day, UTC)",
     needsHost: true,
     async run(ctx) {
       const { host, config } = booted(env);

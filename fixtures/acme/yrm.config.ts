@@ -38,5 +38,43 @@ export default defineConfig({
       freemailDomains: ["mailhub.example"],
       selfOrgName: "YAGNI",
     },
+    // Views (ADR 0010): fields described in English, applied at startup.
+    // `yrm view backfill <name>` fills them from facts and recent mail on the
+    // extract tier; with no reachable model `yrm view show` says so. The
+    // built-in rule views last_contact and open_items need no definition.
+    views: {
+      definitions: [
+        {
+          name: "economic_buyer",
+          appliesTo: "organization",
+          valueType: "entity",
+          populatedBy: "model",
+          description:
+            "The person at this organization who controls the budget for our deal; usually the one who approves pricing or signs.",
+        },
+        {
+          name: "deal_stage",
+          appliesTo: "organization",
+          valueType: "enum",
+          enumValues: ["discovery", "evaluation", "security_review", "pilot", "closed_won", "closed_lost", "stalled"],
+          populatedBy: "model",
+          description: "Where our commercial conversation with this organization stands.",
+        },
+        {
+          name: "champion",
+          appliesTo: "organization",
+          valueType: "entity",
+          populatedBy: "model",
+          description: "The person at this organization who pushes for our product internally and keeps the deal moving.",
+        },
+        {
+          name: "risk_summary",
+          appliesTo: "organization",
+          valueType: "string",
+          populatedBy: "model",
+          description: "The biggest risk to our deal with this organization, in at most 25 words. Null if nothing points to a risk.",
+        },
+      ],
+    },
   },
 });

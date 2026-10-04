@@ -22,6 +22,7 @@ import {
 } from "./components.ts";
 import { html, qs, type Html, type Renderable } from "./html.ts";
 import { addDays, fmtDay } from "./time.ts";
+import { viewsSection } from "./views-section.ts";
 
 const NAV: Array<[string, string]> = [
   ["/", "Today"],
@@ -48,7 +49,9 @@ export function layout(v: View, title: string, active: string, body: Renderable)
 </div></header>
 <main class="wrap">${body}</main>
 <footer class="wrap foot">
-  <p>YRM 0.1 local dashboard. <strong>No authentication:</strong> anyone who can reach this port can read and change this data. It listens on 127.0.0.1 unless started with <span class="mono">--host</span>.</p>
+  <p>YRM 0.1 dashboard.${v.principal ? html` Acting as <span class="mono">${v.principal}</span>.` : ""}${
+    v.session ? html` <form method="post" action="/logout" class="inline"><input type="hidden" name="_csrf" value="${v.csrf}"><button type="submit" class="btn quiet">Sign out</button></form>` : ""
+  }</p>
   <p class="muted">Times shown in ${v.tz}. Every fact links to the message it came from.</p>
 </footer>
 </body>
@@ -215,10 +218,11 @@ ${page.mergedFrom ? html`<p class="notice">${page.mergedFrom} was merged into th
   <div>${entityActions(v, e.id, e.status)}</div>
 </div>
 ${timeMachineControl(v, tm)}
+${viewsSection(v, page)}
 ${page.people.length ? html`<section><h2>People</h2><ul class="chips">${page.people.map((p) => html`<li>${entityLink(p.id, p.name, t)} ${statusChip(p.status)}</li>`)}</ul></section>` : ""}
 <section>
   <h2>Facts <span class="muted small">${tm.engaged ? `true at ${tm.validDate ? fmtDay(tm.validDate, v.tz) : "now"}, as known by ${tm.asOfDate ? fmtDay(tm.asOfDate, v.tz) : "now"}` : "oldest first"}</span></h2>
-  ${notYet > 0 ? html`<p class="legend"><span class="swatch not-yet"></span> ${plural(notYet, "fact was", "facts were")} true then but not yet known: YRM recorded ${notYet === 1 ? "it" : "them"} later.</p>` : ""}
+  ${notYet > 0 ? html`<p class="legend"><span class="swatch not-yet"></span> ${plural(notYet, "fact was", "facts were")} true then but not yet known: we learned ${notYet === 1 ? "it" : "them"} later.</p>` : ""}
   ${page.facts.length === 0 ? html`<p class="empty">No facts ${tm.engaged ? "for this moment" : "yet"}. Facts come from extraction over this ${e.kind}'s mail, notes and meetings.</p>` : html`<ol class="timeline">${page.facts.map((f) => factRow(f, v, { showSubject: false, travel: t }))}</ol>`}
   ${hiddenNote}
 </section>

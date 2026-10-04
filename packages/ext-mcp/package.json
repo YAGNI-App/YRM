@@ -10,6 +10,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@yrm/core": "workspace:*",
+    "@yrm/ext-auth": "workspace:*",
     "zod": "^4.6.5"
   }
 }

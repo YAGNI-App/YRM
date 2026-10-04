@@ -82,11 +82,11 @@ Every issue Bailey writes, and every issue in the backlog, has:
 
 A PR is done when all of these hold:
 
-1. CI is green: `bun run check` (typecheck and tests).
+1. CI is green. Four jobs run on every pull request: `check` (`bun run typecheck` and `bun test`, including the Store conformance suite on PGlite), `acme` (the demo corpus through the whole pipeline with no keys, in `.github/workflows/demo.yml`), `postgres` (the Store suite against a real `postgres:16`) and `smoke` (the compiled binary run outside the repository by `scripts/smoke.sh`). Locally, `bun run check` covers the first.
 2. Tests run offline with no API keys. Model behaviour is tested through a mock `ModelProvider`.
 3. Every acceptance criterion in the linked issue is met, or the PR says which one is not and why, and a person agreed.
 4. The README of every package the PR touches is updated to match the code.
-5. If the PR made a decision with consequences, an ADR is in the same PR (`docs/decisions/NNNN-title.md` from the template).
+5. If the PR made a decision with consequences, an ADR is in the same PR (`docs/decisions/NNNN-title.md` from the template). ADR numbers are sequential and never reused; take the next free number on `main` (0013 as of 2026-10-04) and renumber before merge if another PR took it first, updating every `ADR NNNN` reference.
 6. Proctor approved; Fletcher reported if `needs-browser-test` was on it.
 7. No AI attribution in any commit or in the PR body.
 
@@ -115,19 +115,23 @@ The same applies when acceptance criteria turn out to be wrong or contradictory:
 - Put real names, real companies, real domains or real mail in `fixtures/`.
 - Work on more than one issue in a PR, or on an issue labelled `proposal`.
 
+## Keeping the binary whole
+
+`yrm` ships as a compiled binary ([ADR 0011](decisions/0011-single-binary-and-docker.md)), which has no `node_modules` to load extensions from. Every `packages/ext-*` must be listed in the `BUNDLED` map in `packages/cli/src/builtins.ts`, and a PR that adds, renames or removes an extension package updates that map in the same change. `packages/cli/test/bundled.test.ts` fails otherwise, and the `smoke` job catches anything the test misses.
+
 ## First week plan
 
-Eight issues, in order. Each one is small or medium, independent enough to land on its own, and most of them make the [demo](DEMO.md) more honest. The full list is in [BACKLOG.md](BACKLOG.md).
+Eight issues, in order, drawn from what is still open after the October 4 merges (#41 to #47). Most are small, independent enough to land on their own, and make the [demo](DEMO.md) or the first release more honest. The full list is in [BACKLOG.md](BACKLOG.md). Issues still labelled `proposal` need a person to add `ready` first.
 
 | Day | Issue | Why first |
 |---|---|---|
-| 1 | [#18](https://github.com/YAGNI-App/YRM/issues/18) End the old `works_at` edge when a job change is recorded (S) | The bi-temporal demo shows Priya still at Acme in October. Smallest fix with the biggest visible effect. |
-| 1 | [#28](https://github.com/YAGNI-App/YRM/issues/28) `resolve:eval` and a CI test against ground-truth people (S) | Puts a floor under the resolver before anyone changes it. |
-| 2 | [#35](https://github.com/YAGNI-App/YRM/issues/35) Record backfilled facts at the time we received the event (ADR, then M) | `--as-of` returns nothing on an imported history. ADR first; a person accepts it before the code PR. |
-| 2 | [#16](https://github.com/YAGNI-App/YRM/issues/16) Close fulfilled commitments delivered in a new thread (M) | `today` shows a proposal sent in June as 100 days late. |
-| 3 | [#25](https://github.com/YAGNI-App/YRM/issues/25) Show who confirmed, rejected or merged an entity, and when (S) | The audit rows exist and nothing reads them. Contract PR first. |
-| 3 | [#26](https://github.com/YAGNI-App/YRM/issues/26) `attention:dismiss` with snooze, and explain on a past day (S) | Lets the presenter say "not today" in the demo. |
+| 1 | [#52](https://github.com/YAGNI-App/YRM/issues/52) Dry-run the release workflow and make the image start on a fresh volume (M) | The release workflow has never run, and the Docker image's default command now refuses to start without a token. Nothing ships until both work. |
+| 1 | [#51](https://github.com/YAGNI-App/YRM/issues/51) Show facts as they stood under `--as-of`, and full history with `--all` (S) | The time machine is the centre of the demo, and it marks Priya's Acme job as retracted on a day nobody knew yet. |
+| 2 | [#48](https://github.com/YAGNI-App/YRM/issues/48) Read bare `--at` and `--as-of` dates in the tenant timezone (S) | The CLI and the dashboard disagree about what "as of September 3" means west of UTC. |
+| 2 | [#53](https://github.com/YAGNI-App/YRM/issues/53) Let a bearer token override the loopback bypass (ADR amendment, then S) | A read-only agent token over loopback can write today. Auth is a person's call, so ask on day 2 and build once answered. |
+| 3 | [#28](https://github.com/YAGNI-App/YRM/issues/28) `resolve:eval` and a CI test against ground-truth people (S) | Puts a floor under the resolver before #50 changes it. |
+| 3 | [#50](https://github.com/YAGNI-App/YRM/issues/50) Link the author of a note to the tenant so notes yield facts (S) | Three call notes produce one fact between them. |
 | 4 | [#31](https://github.com/YAGNI-App/YRM/issues/31) `doctor --spend`: model calls and cost by tier and day (S) | Needed before any model eval, so cost is measured, not estimated. |
-| 4 | [#32](https://github.com/YAGNI-App/YRM/issues/32) `yrm_context` bundle quality and a `context:build` harness (S) | The MCP entry point agents use most has no budget test. |
+| 4 | [#17](https://github.com/YAGNI-App/YRM/issues/17) Model extractor scorecards against real routes (M) | Rules reach 88% precision and recall on Acme; this says what a model adds and what it costs, using #31. |
 
-Day 5 is for review backlog, rebasing on the integration PR, and re-running the demo end to end from [DEMO.md](DEMO.md). Anything that broke in the demo becomes an issue before the week ends.
+Day 5 is for review backlog, rebasing, and re-running the demo end to end from [DEMO.md](DEMO.md), including the binary. Anything that broke in the demo becomes an issue before the week ends. After that, take [#26](https://github.com/YAGNI-App/YRM/issues/26) (dismiss and snooze), [#25](https://github.com/YAGNI-App/YRM/issues/25) (audit trail) and [#32](https://github.com/YAGNI-App/YRM/issues/32) (context harness) from the "Next" table in the backlog.

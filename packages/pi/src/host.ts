@@ -1,7 +1,6 @@
 // Bun only: imports @yrm/core, whose store uses bun:sqlite.
 import { bootstrap, findEntities } from "@yrm/cli";
 import { createLogger, YrmError, type Entity, type Host, type ToolContext } from "@yrm/core";
-import { HOST_READY_TOPIC } from "@yrm/ext-mcp";
 
 /** Who facts and notes written from pi are attributed to. */
 export const PI_PRINCIPAL = "agent:pi";
@@ -10,15 +9,11 @@ export type BootHost = () => Promise<Host>;
 
 /**
  * Boot the same host `yrm` would for this directory (config, providers,
- * built-in extensions, `.yrm/extensions`), then bind it to `@yrm/ext-mcp`,
- * whose tools need ranking and context bundles.
+ * built-in extensions, `.yrm/extensions`). Bootstrap starts the host, which
+ * announces itself on `host:ready`, so `@yrm/ext-mcp`'s tools come up bound.
  */
 export function bootFromConfig(cwd: string): BootHost {
-  return async () => {
-    const { host } = await bootstrap({ cwd, log: createLogger("error") });
-    host.events.emit(HOST_READY_TOPIC, host);
-    return host;
-  };
+  return async () => (await bootstrap({ cwd, log: createLogger("error") })).host;
 }
 
 /**

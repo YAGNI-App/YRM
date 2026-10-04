@@ -46,9 +46,6 @@ export interface SyncDeps {
   account: string;
 }
 
-/** `report` is not part of SyncContext yet; call it when a host provides it. */
-type Reporting = SyncContext & { report?: (stats: Record<string, unknown>) => void };
-
 class Ingester {
   private batch: NewSourceEvent[] = [];
   private readonly seen = new Set<string>();
@@ -233,8 +230,7 @@ export async function syncGmail(ctx: SyncContext, deps: SyncDeps): Promise<SyncS
     noiseReasons: stats.noiseReasons,
     partial: stats.partial,
   };
-  const reporting = ctx as Reporting;
-  if (typeof reporting.report === "function") reporting.report({ dropped: stats.dropped });
+  if (stats.dropped > 0) ctx.report?.({ dropped: stats.dropped });
   ctx.log.info("gmail sync finished", summary);
   return stats;
 }

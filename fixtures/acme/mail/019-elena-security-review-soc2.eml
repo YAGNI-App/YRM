@@ -1,0 +1,26 @@
+Message-ID: <202607141322.secreview@acme-robotics.example>
+Date: Tue, 14 Jul 2026 13:22:09 -0700
+From: Elena Vasquez <elena.vasquez@acme-robotics.example>
+To: Jack Collins <jack@yagni.example>
+Cc: Marcus Bell <marcus.bell@acme-robotics.example>
+Subject: Security review: YAGNI edge agent
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Jack,
+
+Marcus asked me to run the security review for the Reno pilot. Before I schedule anything I want to flag a concern up front so nobody is surprised later.
+
+Your trust page says YAGNI holds a SOC 2 Type I report. Our vendor policy requires SOC 2 Type II for any software that runs on a network segment with access to production systems, and the edge agent would sit on the Reno floor network next to Fulcrum and the AMR fleet manager. A Type I tells me your controls were designed sensibly on one day; it does not tell me they operated for six months. That is a real gap for us, and I can't waive it on my own authority.
+
+To start the review, can you send me your current SOC 2 report and the summary of your most recent external penetration test? I'll also need your subprocessor list and a data-flow diagram for the agent eventually, but the first two are what I need now.
+
+I'd rather find a path than block this, but I need to be clear that the Type II question will come back at the end.
+
+Elena
+
+-- 
+Elena Vasquez
+Head of Information Security
+Acme Robotics

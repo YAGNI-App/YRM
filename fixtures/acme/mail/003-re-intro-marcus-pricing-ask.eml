@@ -1,0 +1,57 @@
+Message-ID: <202606030840.pricing-ask@acme-robotics.example>
+Date: Wed, 03 Jun 2026 08:40:51 -0700
+From: Marcus Bell <marcus.bell@acme-robotics.example>
+To: Jack Collins <jack@yagni.example>
+Cc: Priya Raman <priya.raman@acme-robotics.example>
+Subject: Re: Intro: Jack Collins (YAGNI) <> Marcus Bell (Acme)
+In-Reply-To: <202606021402.intro-reply@yagni.example>
+References: <202606020914.intro@acme-robotics.example> <202606021402.intro-reply@yagni.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Jack,
+
+Thanks, and thanks Priya. Happy to take a look.
+
+Two things that would help me before a call. Can you include what pricing would look like for all three DCs, not just one site? And does YAGNI integrate with Fulcrum WMS out of the box, or is that a services project? We have been burned by "integrations" that turned out to be CSV exports.
+
+Marcus
+
+-- 
+Marcus Bell
+VP Operations, Acme Robotics
++1 775 555 0108
+
+On Tue, 02 Jun 2026 at 14:02, Jack Collins <jack@yagni.example> wrote:
+> Priya, thank you for the kind intro (moving you to To so you stay on the thread).
+>
+> Marcus, great to meet you. Priya gave me a good picture of the wave-planning pain at Reno, and it sounds a lot like where our two 3PL customers were a year ago.
+>
+> To make the most of your time, I'll send you a one-page overview and indicative pricing by Friday, June 5. If it looks relevant, a 45-minute discovery call the week after would be the next step.
+>
+> Jack
+>
+> -- 
+> Jack Collins
+> Founder, YAGNI
+> +1 646 555 0142 | yagni.example
+>
+> On Tue, 02 Jun 2026 at 09:14, Priya Raman <priya.raman@acme-robotics.example> wrote:
+>> Hi Jack, hi Marcus,
+>>
+>> As promised after the Reno ops meetup, connecting the two of you.
+>>
+>> Marcus, Jack runs YAGNI. They schedule pickers and AMRs together off live order flow, which is exactly the wave-planning mess we keep talking about at Reno. Their numbers from two 3PL deployments were a 14-18% lift in picks per labor hour without new hardware.
+>>
+>> Jack, Marcus is our VP of Operations and owns the budget for all three of our distribution centers (Reno, Columbus, Allentown). If something like this happens at Acme, it goes through him.
+>>
+>> I'll let you two take it from here, but I'd love to stay in the loop. I've been pushing for this kind of tooling since peak last year.
+>>
+>> Best,
+>> Priya
+>>
+>> -- 
+>> Priya Raman
+>> Director of Fulfillment Operations
+>> Acme Robotics | Reno, NV

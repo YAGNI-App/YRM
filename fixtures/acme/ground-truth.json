@@ -1,0 +1,379 @@
+{
+  "corpus": {
+    "name": "acme",
+    "start": "2026-06-01",
+    "end": "2026-10-03",
+    "counts": { "messages": 40, "noise": 7, "calendarEvents": 4, "notes": 3 }
+  },
+  "tenant": {
+    "selfAddresses": ["jack@yagni.example"],
+    "selfDomains": ["yagni.example"]
+  },
+  "noise": [
+    "<opsweekly-212.20260608@opsweekly.example>",
+    "<cal-notify-7c1e.20260610@calendar.mailhub.example>",
+    "<digest-20260622-4412@trackly.example>",
+    "<rs26-eb-final.20260706@roboops-summit.example>",
+    "<supplier-portal-90213.20260728@acme-robotics.example>",
+    "<opsweekly-226.20260914@opsweekly.example>",
+    "<rs26-agenda.20260928@roboops-summit.example>"
+  ],
+  "organizations": [
+    { "domain": "yagni.example", "name": "YAGNI", "self": true },
+    { "domain": "acme-robotics.example", "name": "Acme Robotics" },
+    { "domain": "northwind.example", "name": "Northwind Automation" }
+  ],
+  "freemailDomains": ["mailhub.example"],
+  "people": [
+    {
+      "key": "jack",
+      "name": "Jack Collins",
+      "addresses": ["jack@yagni.example"],
+      "self": true,
+      "organizations": [{ "domain": "yagni.example", "validFrom": "2026-06-01" }]
+    },
+    {
+      "key": "dana",
+      "name": "Dana Okafor",
+      "addresses": ["dana@yagni.example"],
+      "organizations": [{ "domain": "yagni.example", "validFrom": "2026-06-01" }]
+    },
+    {
+      "key": "priya",
+      "name": "Priya Raman",
+      "addresses": ["priya.raman@acme-robotics.example", "priya@northwind.example"],
+      "organizations": [
+        { "domain": "acme-robotics.example", "validFrom": "2026-06-01", "validTo": "2026-08-14" },
+        { "domain": "northwind.example", "validFrom": "2026-08-17" }
+      ]
+    },
+    {
+      "key": "marcus",
+      "name": "Marcus Bell",
+      "addresses": ["marcus.bell@acme-robotics.example"],
+      "organizations": [{ "domain": "acme-robotics.example", "validFrom": "2026-06-01" }]
+    },
+    {
+      "key": "elena",
+      "name": "Elena Vasquez",
+      "addresses": ["elena.vasquez@acme-robotics.example"],
+      "organizations": [{ "domain": "acme-robotics.example", "validFrom": "2026-06-01" }]
+    },
+    {
+      "key": "tom",
+      "name": "Tom Fischer",
+      "addresses": ["tom.fischer@acme-robotics.example", "tfischer@mailhub.example"],
+      "organizations": [{ "domain": "acme-robotics.example", "validFrom": "2026-06-01" }]
+    },
+    {
+      "key": "rachel",
+      "name": "Rachel Kim",
+      "addresses": ["rachel.kim@acme-robotics.example"],
+      "organizations": [{ "domain": "acme-robotics.example", "validFrom": "2026-06-01" }]
+    },
+    {
+      "key": "sam",
+      "name": "Sam Lindqvist",
+      "addresses": ["sam@northwind.example"],
+      "organizations": [{ "domain": "northwind.example", "validFrom": "2026-06-01" }]
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "type": "commitment",
+      "subject": "jack",
+      "object": "marcus",
+      "statement": "Jack will send Marcus a one-page overview and indicative pricing by Friday June 5.",
+      "dueAt": "2026-06-05",
+      "status": "fulfilled",
+      "evidence": ["<202606021402.intro-reply@yagni.example>"],
+      "resolvedBy": "<202606051530.overview@yagni.example>"
+    },
+    {
+      "id": "f02",
+      "type": "commitment",
+      "subject": "priya",
+      "object": "jack",
+      "statement": "Priya will share two weeks of anonymised Reno pick data by June 23.",
+      "dueAt": "2026-06-23",
+      "status": "fulfilled",
+      "evidence": ["notes/2026-06-16-discovery-call.md", "<202606170920.recap@yagni.example>"],
+      "resolvedBy": "<202606231641.sampledata@acme-robotics.example>"
+    },
+    {
+      "id": "f03",
+      "type": "commitment",
+      "subject": "jack",
+      "object": "marcus",
+      "statement": "Jack will send a written pilot proposal with two scoping options by June 26.",
+      "dueAt": "2026-06-26",
+      "status": "fulfilled",
+      "evidence": ["notes/2026-06-16-discovery-call.md", "<202606170920.recap@yagni.example>"],
+      "resolvedBy": "<202606261203.proposal@yagni.example>"
+    },
+    {
+      "id": "f04",
+      "type": "commitment",
+      "subject": "marcus",
+      "object": "jack",
+      "statement": "Marcus committed that procurement (Rachel Kim) would return the order form with redlines by July 17.",
+      "dueAt": "2026-07-17",
+      "status": "fulfilled",
+      "evidence": ["notes/2026-07-08-pilot-scoping.md", "<202607090931.decision@acme-robotics.example>"],
+      "resolvedBy": "<202607171548.orderform@acme-robotics.example>"
+    },
+    {
+      "id": "f05",
+      "type": "commitment",
+      "subject": "jack",
+      "object": "elena",
+      "statement": "Jack will send Elena the SOC 2 Type I report and the May penetration test summary by July 24.",
+      "dueAt": "2026-07-24",
+      "status": "fulfilled",
+      "evidence": ["<202607150910.secreview-reply@yagni.example>"],
+      "resolvedBy": "<202607231620.secdocs@yagni.example>"
+    },
+    {
+      "id": "f06",
+      "type": "commitment",
+      "subject": "tom",
+      "object": "jack",
+      "statement": "Tom will install the YAGNI edge agent on the Reno test VLAN by August 14.",
+      "dueAt": "2026-08-14",
+      "status": "broken",
+      "evidence": ["<202608041026.install@acme-robotics.example>"],
+      "resolvedBy": "<202608180758.install-missed@acme-robotics.example>"
+    },
+    {
+      "id": "f07",
+      "type": "commitment",
+      "subject": "dana",
+      "object": "elena",
+      "statement": "Dana will send Elena the subprocessor list and the edge agent data-flow diagram by September 4.",
+      "dueAt": "2026-09-04",
+      "status": "fulfilled",
+      "evidence": ["notes/2026-08-26-security-review.md", "<202608271015.secfollowups@yagni.example>"],
+      "resolvedBy": "<202609011405.danadocs@yagni.example>"
+    },
+    {
+      "id": "f08",
+      "type": "commitment",
+      "subject": "jack",
+      "object": "elena",
+      "statement": "Jack will send Elena and Marcus the SOC 2 Type II report by September 30.",
+      "dueAt": "2026-09-30",
+      "status": "open",
+      "evidence": ["notes/2026-08-26-security-review.md", "<202608271015.secfollowups@yagni.example>"],
+      "note": "Still open on 2026-10-03 and past due; Dana's internal mail of 2026-10-01 says the report slips to October 16."
+    },
+    {
+      "id": "f09",
+      "type": "ask",
+      "subject": "marcus",
+      "object": "jack",
+      "statement": "Marcus asked for pricing across all three DCs and whether YAGNI integrates natively with Fulcrum WMS.",
+      "answered": true,
+      "evidence": ["<202606030840.pricing-ask@acme-robotics.example>"],
+      "answeredBy": "<202606051530.overview@yagni.example>"
+    },
+    {
+      "id": "f10",
+      "type": "ask",
+      "subject": "tom",
+      "object": "jack",
+      "statement": "Tom asked whether the edge agent needs outbound internet access and what Fulcrum API load it creates.",
+      "answered": true,
+      "evidence": ["<CAF7tq9.20260619.agentnet@mailhub.example>"],
+      "answeredBy": "<202606201115.agentnet-reply@yagni.example>"
+    },
+    {
+      "id": "f11",
+      "type": "ask",
+      "subject": "marcus",
+      "object": "jack",
+      "statement": "Marcus asked what happens to Acme's data, and whether they get an export, if they stop after the pilot.",
+      "answered": true,
+      "evidence": ["<202606300812.dataask@acme-robotics.example>"],
+      "answeredBy": "<202607011044.dataanswer@yagni.example>"
+    },
+    {
+      "id": "f12",
+      "type": "ask",
+      "subject": "elena",
+      "object": "jack",
+      "statement": "Elena asked for YAGNI's current SOC 2 report and most recent external penetration test summary.",
+      "answered": true,
+      "evidence": ["<202607141322.secreview@acme-robotics.example>"],
+      "answeredBy": "<202607231620.secdocs@yagni.example>"
+    },
+    {
+      "id": "f13",
+      "type": "ask",
+      "subject": "rachel",
+      "object": "jack",
+      "statement": "Rachel asked whether YAGNI can accept net 60 payment terms for the pilot invoice.",
+      "answered": true,
+      "evidence": ["<202607171548.orderform@acme-robotics.example>"],
+      "answeredBy": "<202607200902.orderform-reply@yagni.example>"
+    },
+    {
+      "id": "f14",
+      "type": "ask",
+      "subject": "marcus",
+      "object": "jack",
+      "statement": "Marcus asked for a yes or no: if the Type II report slips past September 30, can Acme exit the pilot order with no fee?",
+      "answered": false,
+      "evidence": ["<202609021748.exitask@acme-robotics.example>"],
+      "note": "Never answered. Jack's 2026-09-22 check-in is a new thread and does not address it."
+    },
+    {
+      "id": "f15",
+      "type": "ask",
+      "subject": "priya",
+      "object": "jack",
+      "statement": "Priya asked for 30 minutes to discuss Northwind referring YAGNI to its Fulcrum customers.",
+      "answered": true,
+      "evidence": ["<202609100830.priya-nw@northwind.example>"],
+      "answeredBy": "<202609111002.priya-nw-reply@yagni.example>"
+    },
+    {
+      "id": "f16",
+      "type": "decision",
+      "subject": "marcus",
+      "object": "acme-robotics.example",
+      "statement": "Acme chose Option A: a Reno-only pilot, 8 weeks, up to 40 pickers, measured on picks per labor hour, target start August 24.",
+      "validFrom": "2026-07-08",
+      "evidence": ["notes/2026-07-08-pilot-scoping.md", "<202607090931.decision@acme-robotics.example>", "acme-pilot-scoping-20260708@yagni.example"]
+    },
+    {
+      "id": "f17",
+      "type": "decision",
+      "subject": "elena",
+      "object": "acme-robotics.example",
+      "statement": "Elena put the Reno pilot, including the test VLAN, on hold until she has reviewed a SOC 2 Type II report.",
+      "validFrom": "2026-08-28",
+      "evidence": ["<202608281140.hold@acme-robotics.example>"]
+    },
+    {
+      "id": "f18",
+      "type": "objection",
+      "subject": "elena",
+      "object": "jack",
+      "statement": "Elena objected that YAGNI only holds SOC 2 Type I; Acme policy requires Type II for software on a segment adjacent to production.",
+      "severity": "high",
+      "resolved": false,
+      "validFrom": "2026-07-14",
+      "evidence": [
+        "<202607141322.secreview@acme-robotics.example>",
+        "acme-security-review-20260826@yagni.example",
+        "notes/2026-08-26-security-review.md",
+        "<202608281140.hold@acme-robotics.example>"
+      ]
+    },
+    {
+      "id": "f19",
+      "type": "signal",
+      "predicate": "job_change",
+      "subject": "priya",
+      "object": "northwind.example",
+      "statement": "Priya Raman, the champion, left Acme Robotics on August 14 and joined Northwind Automation as Director of Solutions.",
+      "validFrom": "2026-08-14",
+      "knownAt": "2026-09-03",
+      "evidence": [
+        "<202608141702.leaving@acme-robotics.example>",
+        "<202609090912.nwnews@northwind.example>",
+        "<202609100830.priya-nw@northwind.example>"
+      ],
+      "note": "The announcement is dated 2026-08-14 but was held in Acme's DLP quarantine and delivered 2026-09-03 (see Received and X-Acme-DLP headers). Valid time and recorded time differ."
+    },
+    {
+      "id": "f20",
+      "type": "signal",
+      "predicate": "gone_quiet",
+      "subject": "acme-robotics.example",
+      "object": "jack",
+      "statement": "Acme Robotics has sent nothing since Marcus's mail of September 2, despite Jack's check-in on September 22.",
+      "validFrom": "2026-09-02",
+      "evidence": ["<202609021748.exitask@acme-robotics.example>", "<202609220945.checkin@yagni.example>"]
+    },
+    {
+      "id": "f21",
+      "type": "role",
+      "predicate": "economic_buyer",
+      "subject": "marcus",
+      "object": "acme-robotics.example",
+      "statement": "Marcus Bell, VP Operations, owns the budget for all three Acme DCs and is the economic buyer.",
+      "validFrom": "2026-06-02",
+      "evidence": ["<202606020914.intro@acme-robotics.example>", "notes/2026-06-16-discovery-call.md"]
+    },
+    {
+      "id": "f22",
+      "type": "role",
+      "predicate": "champion",
+      "subject": "priya",
+      "object": "acme-robotics.example",
+      "statement": "Priya Raman was the internal champion for YAGNI at Acme until she left on August 14.",
+      "validFrom": "2026-06-02",
+      "validTo": "2026-08-14",
+      "evidence": ["<202606020914.intro@acme-robotics.example>", "notes/2026-06-16-discovery-call.md", "<202608141702.leaving@acme-robotics.example>"]
+    },
+    {
+      "id": "f23",
+      "type": "role",
+      "predicate": "security_approver",
+      "subject": "elena",
+      "object": "acme-robotics.example",
+      "statement": "Elena Vasquez, Head of Information Security, runs the vendor security review and can block the pilot.",
+      "validFrom": "2026-07-09",
+      "evidence": ["<202607090931.decision@acme-robotics.example>", "<202607141322.secreview@acme-robotics.example>"]
+    },
+    {
+      "id": "f24",
+      "type": "relationship",
+      "predicate": "works_at",
+      "subject": "priya",
+      "object": "acme-robotics.example",
+      "statement": "Priya Raman worked at Acme Robotics as Director of Fulfillment Operations.",
+      "validFrom": "2026-06-01",
+      "validTo": "2026-08-14",
+      "evidence": ["<202606020914.intro@acme-robotics.example>", "<202608141702.leaving@acme-robotics.example>"]
+    },
+    {
+      "id": "f25",
+      "type": "relationship",
+      "predicate": "works_at",
+      "subject": "priya",
+      "object": "northwind.example",
+      "statement": "Priya Raman works at Northwind Automation as Director of Solutions.",
+      "validFrom": "2026-08-17",
+      "evidence": ["<202608141702.leaving@acme-robotics.example>", "<202609090912.nwnews@northwind.example>", "<202609100830.priya-nw@northwind.example>"]
+    }
+  ],
+  "expectedQueueOn": {
+    "2026-10-03": [
+      {
+        "kind": "unanswered_ask",
+        "about": "marcus",
+        "fact": "f14",
+        "since": "2026-09-02",
+        "evidence": ["<202609021748.exitask@acme-robotics.example>"]
+      },
+      {
+        "kind": "overdue_commitment",
+        "about": "elena",
+        "owedBy": "jack",
+        "fact": "f08",
+        "dueAt": "2026-09-30",
+        "evidence": ["<202608271015.secfollowups@yagni.example>", "notes/2026-08-26-security-review.md"]
+      },
+      {
+        "kind": "gone_quiet",
+        "about": "acme-robotics.example",
+        "fact": "f20",
+        "since": "2026-09-02",
+        "evidence": ["<202609021748.exitask@acme-robotics.example>"]
+      }
+    ]
+  }
+}

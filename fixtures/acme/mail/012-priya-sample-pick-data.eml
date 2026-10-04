@@ -1,0 +1,22 @@
+Message-ID: <202606231641.sampledata@acme-robotics.example>
+Date: Tue, 23 Jun 2026 16:41:19 -0700
+From: Priya Raman <priya.raman@acme-robotics.example>
+To: Jack Collins <jack@yagni.example>
+Cc: Tom Fischer <tom.fischer@acme-robotics.example>
+Subject: Reno sample pick data (2 weeks, anonymised)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Jack,
+
+Here you go, as promised: two weeks of pick data from Reno (June 1-14), exported from Fulcrum and anonymised: order ids hashed, picker ids replaced with sequence numbers. 412k order lines across both shifts. The data dictionary is the second tab.
+
+Tom flagged that the timestamps are in local time, not UTC, so watch the DST boundary if you go further back.
+
+Priya
+
+-- 
+Priya Raman
+Director of Fulfillment Operations
+Acme Robotics | Reno, NV

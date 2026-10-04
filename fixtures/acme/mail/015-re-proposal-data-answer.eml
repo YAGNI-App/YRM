@@ -1,0 +1,62 @@
+Message-ID: <202607011044.dataanswer@yagni.example>
+Date: Wed, 01 Jul 2026 10:44:02 -0400
+From: Jack Collins <jack@yagni.example>
+To: Marcus Bell <marcus.bell@acme-robotics.example>
+Cc: Priya Raman <priya.raman@acme-robotics.example>
+Subject: Re: YAGNI pilot proposal for Acme Robotics
+In-Reply-To: <202606300812.dataask@acme-robotics.example>
+References: <202606261203.proposal@yagni.example> <202606300812.dataask@acme-robotics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Marcus,
+
+One sentence: if you stop after the pilot, we export everything the agent learned about your floor to you in open formats and delete our copy within 30 days, with a written certificate.
+
+The slightly longer version is in section 7 of our standard terms, which I'll include with the order form. See you on the 8th.
+
+Jack
+
+-- 
+Jack Collins
+Founder, YAGNI
++1 646 555 0142 | yagni.example
+
+On Tue, 30 Jun 2026 at 08:12, Marcus Bell <marcus.bell@acme-robotics.example> wrote:
+> Jack,
+>
+> Read it twice. I'm leaning toward Option A for the same reason you are; I don't want three change windows in Q3.
+>
+> One question I'll get from our CFO: what happens to our data if we end after the pilot? Specifically, do you delete it, and can we get an export of anything the agent learned about our floor (the wave models, the labor curves)? I want to be able to say yes or no to that in one sentence.
+>
+> We'll make a call on scope after our scoping session on the 8th.
+>
+> Marcus
+>
+> -- 
+> Marcus Bell
+> VP Operations, Acme Robotics
+> +1 775 555 0108
+>
+> On Fri, 26 Jun 2026 at 12:03, Jack Collins <jack@yagni.example> wrote:
+>> Priya, Marcus,
+>>
+>> Attached is the pilot proposal, built on the Reno data Priya shared. Headline: on those two weeks, our simulator releases work 9 minutes earlier on average per wave and keeps AMRs busy 17% more of the shift.
+>>
+>> Two options:
+>>
+>> Option A: one site. Reno only, 8 weeks, up to 40 pickers on both shifts. Flat $18,000, credited against year one. Success metric: picks per labor hour vs. the June baseline, measured by Tom's team, not ours.
+>>
+>> Option B: three sites. Reno, Columbus and Allentown in parallel, 10 weeks. $45,000. Faster path to a full rollout decision, but three network reviews and three change windows.
+>>
+>> My honest recommendation is Option A. It proves the thing that matters with the least disruption, and Columbus and Allentown can follow in weeks rather than months if Reno works.
+>>
+>> Either option needs a security review on your side before the agent goes on the floor network. Dana has our standard package ready.
+>>
+>> Jack
+>>
+>> -- 
+>> Jack Collins
+>> Founder, YAGNI
+>> +1 646 555 0142 | yagni.example

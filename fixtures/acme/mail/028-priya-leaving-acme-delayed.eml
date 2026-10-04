@@ -1,0 +1,27 @@
+Received: from mx1.yagni.example (mx1.yagni.example [198.51.100.25]) by mail.yagni.example with ESMTPS id 4Rk2p; Thu, 03 Sep 2026 09:05:12 -0400
+Received: from dlp-gw.acme-robotics.example (dlp-gw.acme-robotics.example [203.0.113.40]) by mx1.yagni.example with ESMTPS id 9Hq1x; Thu, 03 Sep 2026 13:05:09 +0000
+Message-ID: <202608141702.leaving@acme-robotics.example>
+Date: Fri, 14 Aug 2026 17:02:45 -0700
+From: Priya Raman <priya.raman@acme-robotics.example>
+To: Jack Collins <jack@yagni.example>
+Cc: Marcus Bell <marcus.bell@acme-robotics.example>
+Subject: Some personal news
+X-Acme-DLP: quarantined 2026-08-14T17:02:47-07:00 rule=external-employer-mention; released 2026-09-03T06:05:01-07:00
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Jack,
+
+I wanted you to hear this from me. Today is my last day at Acme. I've accepted a role at Northwind Automation and start there on Monday the 17th.
+
+It was not an easy decision and it has nothing to do with the pilot; if anything I'm sad to leave before Reno goes live. Marcus is your point of contact from here, and Tom knows the floor better than anyone.
+
+I'll send you my new details once I'm settled.
+
+Priya
+
+-- 
+Priya Raman
+Director of Fulfillment Operations
+Acme Robotics | Reno, NV

@@ -1,0 +1,108 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//YAGNI//YRM fixtures//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Acme Robotics
+BEGIN:VEVENT
+UID:acme-discovery-20260616@yagni.example
+DTSTAMP:20260610T130000Z
+CREATED:20260610T130000Z
+LAST-MODIFIED:20260610T130000Z
+SEQUENCE:0
+DTSTART:20260616T160000Z
+DTEND:20260616T164500Z
+SUMMARY:YAGNI x Acme Robotics: discovery
+DESCRIPTION:Discovery call. Agenda: Reno wave planning today\, AMR idle tim
+ e\, Fulcrum WMS integration\, what success looks like for Acme.
+CATEGORIES:Acme Reno pilot
+STATUS:CONFIRMED
+ORGANIZER;CN=Jack Collins:mailto:jack@yagni.example
+ATTENDEE;CN=Jack Collins;ROLE=CHAIR;PARTSTAT=ACCEPTED:mailto:jack@yagni.exa
+ mple
+ATTENDEE;CN=Priya Raman;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:priya
+ .raman@acme-robotics.example
+ATTENDEE;CN=Marcus Bell;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:marcu
+ s.bell@acme-robotics.example
+ATTENDEE;CN=Tom Fischer;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:tom.f
+ ischer@acme-robotics.example
+END:VEVENT
+BEGIN:VEVENT
+UID:acme-pilot-scoping-20260708@yagni.example
+DTSTAMP:20260701T150000Z
+CREATED:20260701T150000Z
+LAST-MODIFIED:20260701T150000Z
+SEQUENCE:0
+DTSTART:20260708T160000Z
+DTEND:20260708T170000Z
+SUMMARY:YAGNI x Acme Robotics: pilot scoping
+DESCRIPTION:Choose between Option A (Reno only\, 8 weeks) and Option B (thr
+ ee sites\, 10 weeks). Agree success metric\, start date and security revie
+ w owner.
+CATEGORIES:Acme Reno pilot
+STATUS:CONFIRMED
+ORGANIZER;CN=Jack Collins:mailto:jack@yagni.example
+ATTENDEE;CN=Jack Collins;ROLE=CHAIR;PARTSTAT=ACCEPTED:mailto:jack@yagni.exa
+ mple
+ATTENDEE;CN=Priya Raman;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:priya
+ .raman@acme-robotics.example
+ATTENDEE;CN=Marcus Bell;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:marcu
+ s.bell@acme-robotics.example
+ATTENDEE;CN=Tom Fischer;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:tom.f
+ ischer@acme-robotics.example
+ATTENDEE;CN=Dana Okafor;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:dana@
+ yagni.example
+END:VEVENT
+BEGIN:VEVENT
+UID:acme-security-review-20260826@yagni.example
+DTSTAMP:20260724T140000Z
+CREATED:20260724T140000Z
+LAST-MODIFIED:20260724T140000Z
+SEQUENCE:0
+DTSTART:20260826T170000Z
+DTEND:20260826T180000Z
+SUMMARY:YAGNI x Acme Robotics: security review
+DESCRIPTION:Security review of the YAGNI edge agent for the Reno pilot\, le
+ d by Elena Vasquez. Covers SOC 2 status (Type I held\, Type II window clos
+ es Sept 30)\, pen test summary\, data flows\, proxy setup and subprocessor
+ s.
+CATEGORIES:Acme Reno pilot
+STATUS:CONFIRMED
+ORGANIZER;CN=Jack Collins:mailto:jack@yagni.example
+ATTENDEE;CN=Jack Collins;ROLE=CHAIR;PARTSTAT=ACCEPTED:mailto:jack@yagni.exa
+ mple
+ATTENDEE;CN=Elena Vasquez;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:ele
+ na.vasquez@acme-robotics.example
+ATTENDEE;CN=Marcus Bell;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:marcu
+ s.bell@acme-robotics.example
+ATTENDEE;CN=Tom Fischer;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:tom.f
+ ischer@acme-robotics.example
+ATTENDEE;CN=Dana Okafor;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:dana@
+ yagni.example
+END:VEVENT
+BEGIN:VEVENT
+UID:acme-pilot-kickoff-20260915@yagni.example
+DTSTAMP:20260903T131500Z
+CREATED:20260827T150000Z
+LAST-MODIFIED:20260903T131500Z
+SEQUENCE:1
+DTSTART:20260915T160000Z
+DTEND:20260915T170000Z
+SUMMARY:YAGNI x Acme Robotics: Reno pilot kickoff
+DESCRIPTION:Cancelled at Marcus Bell's request: the Reno pilot is on hold u
+ ntil the security review clears (SOC 2 Type II).
+CATEGORIES:Acme Reno pilot
+STATUS:CANCELLED
+ORGANIZER;CN=Jack Collins:mailto:jack@yagni.example
+ATTENDEE;CN=Jack Collins;ROLE=CHAIR;PARTSTAT=ACCEPTED:mailto:jack@yagni.exa
+ mple
+ATTENDEE;CN=Marcus Bell;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto:m
+ arcus.bell@acme-robotics.example
+ATTENDEE;CN=Elena Vasquez;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto
+ :elena.vasquez@acme-robotics.example
+ATTENDEE;CN=Tom Fischer;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto:t
+ om.fischer@acme-robotics.example
+ATTENDEE;CN=Dana Okafor;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto:d
+ ana@yagni.example
+END:VEVENT
+END:VCALENDAR

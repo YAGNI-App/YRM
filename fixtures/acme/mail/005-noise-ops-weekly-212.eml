@@ -1,0 +1,28 @@
+Message-ID: <opsweekly-212.20260608@opsweekly.example>
+Date: Mon, 08 Jun 2026 06:00:00 +0000
+From: The Ops Weekly <newsletter@opsweekly.example>
+To: Jack Collins <jack@yagni.example>
+Subject: The Ops Weekly #212: Peak season staffing is already late
+List-Id: The Ops Weekly <weekly.opsweekly.example>
+List-Unsubscribe: <https://opsweekly.example/unsubscribe?u=8f3a2c>, <mailto:unsubscribe@opsweekly.example?subject=unsubscribe>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Precedence: bulk
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+THE OPS WEEKLY - Issue #212
+
+This week: why peak staffing plans written in June are already late, a teardown of three AMR deployments that missed their ROI targets, and the five metrics every DC manager should stop reporting.
+
+1. Peak staffing is a Q2 problem
+Temp agencies in the Mountain West report that 40% of Q4 seasonal capacity is already committed.
+
+2. AMR ROI teardowns
+The common thread: robots were added without changing how work was released to the floor.
+
+3. Stop reporting these five metrics
+Lines per hour without order mix is noise.
+
+You are receiving this because you subscribed at opsweekly.example.
+Unsubscribe: https://opsweekly.example/unsubscribe?u=8f3a2c

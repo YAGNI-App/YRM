@@ -1,0 +1,38 @@
+Message-ID: <202608180758.install-missed@acme-robotics.example>
+Date: Tue, 18 Aug 2026 07:58:20 -0700
+From: Tom Fischer <tom.fischer@acme-robotics.example>
+To: Jack Collins <jack@yagni.example>
+Cc: Dana Okafor <dana@yagni.example>
+Subject: Re: Edge agent install on Reno test VLAN
+In-Reply-To: <202608041026.install@acme-robotics.example>
+References: <202608041026.install@acme-robotics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Jack, Dana,
+
+Bad news: the agent did not get installed. Corporate IT put a change freeze on all floor network segments on the 10th while they finish the mail gateway rollout, and Elena would not sign an exception for a vendor that hasn't cleared review. That's on us, not you; the installer was here on time.
+
+Realistically nothing goes on the VLAN until after the security review on the 26th. I'm sorry; I know this eats into the start date.
+
+Tom
+
+-- 
+Tom Fischer
+Senior Operations Engineer, Acme Robotics
++1 775 555 0133
+
+On Tue, 04 Aug 2026 at 10:26, Tom Fischer <tom.fischer@acme-robotics.example> wrote:
+> Jack, Dana,
+>
+> Network team approved a test VLAN for the agent (no route to production Fulcrum yet, mirrored event feed only). I'll have the agent installed on the test VLAN by August 14 so Dana can verify the proxy setup and we have a week of shadow data before the security review.
+>
+> Dana, I'll need the installer and the proxy hostname by end of this week.
+>
+> Tom
+>
+> -- 
+> Tom Fischer
+> Senior Operations Engineer, Acme Robotics
+> +1 775 555 0133

@@ -1,0 +1,17 @@
+{
+  "name": "@yrm/store-postgres",
+  "version": "0.1.0",
+  "description": "Postgres implementation of the YRM Store, for multi-tenant and multi-host deployments.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0"
+  }
+}

@@ -14,5 +14,8 @@
     "@yrm/core": "workspace:*",
     "@yrm/provider-anthropic": "workspace:*",
     "@yrm/provider-openai": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@yrm/store-postgres": "workspace:*"
   }
 }

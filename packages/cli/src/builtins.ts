@@ -13,7 +13,6 @@ export const BUILTINS = [
   "@yrm/ext-mcp",
   "@yrm/ext-web",
   "@yrm/ext-slack",
-  "@yrm/ext-views",
 ] as const;
 
 /**

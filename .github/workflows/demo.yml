@@ -1,0 +1,55 @@
+name: Demo
+
+# Runs the Acme corpus through the whole pipeline with no model keys and
+# publishes the extraction scorecard and the attention queue as the job
+# summary. If this stops looking right, the demo has regressed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  acme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Import the corpus
+        working-directory: fixtures/acme
+        run: |
+          bun run ../../packages/cli/src/main.ts import . 2>/dev/null | tee import.txt
+      - name: Score extraction and rank the queue
+        working-directory: fixtures/acme
+        run: |
+          bun run ../../packages/cli/src/main.ts extract:eval --corpus . 2>/dev/null | tee eval.txt
+          bun run ../../packages/cli/src/main.ts today --date 2026-10-03 2>/dev/null | tee today.txt
+          {
+            echo "## Acme demo, rule-only, no model calls"
+            echo
+            echo '```'
+            cat import.txt
+            echo '```'
+            echo
+            echo "### Extraction scorecard"
+            echo '```'
+            cat eval.txt
+            echo '```'
+            echo
+            echo "### today --date 2026-10-03"
+            echo '```'
+            head -40 today.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Guard the demo
+        working-directory: fixtures/acme
+        run: |
+          grep -q "events created *40" import.txt
+          grep -q "dropped *7" import.txt
+          head -8 today.txt | grep -q "Marcus Bell"
+          recall=$(grep '^overall' eval.txt | grep -oE 'recall +[0-9]+%' | grep -oE '[0-9]+')
+          echo "overall recall ${recall}%"
+          test "$recall" -ge 80

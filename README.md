@@ -12,7 +12,7 @@ YRM is an open context layer for relationships. It ingests your mail, meetings a
 
 ## Status
 
-**0.1 is in progress.** The contracts, store, pipeline, CLI and built-in extensions are in place and run against the demo corpus (see [Try it](#try-it)). Nothing is published to npm yet. Watch the repository to follow along.
+**0.1 is in progress.** The contracts, store, pipeline, CLI and built-in extensions are in place and run against the demo corpus (see [Try it](#try-it)). YRM ships as a single `yrm` binary and a Docker image (see [Install](#install)); the `@yrm/*` packages are not on npm. Watch the repository to follow along.
 
 - [VISION.md](VISION.md): where this is going.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the design.
@@ -146,6 +146,47 @@ Priya Raman is changing jobs: leaving Acme, joining Northwind Automation.  [sign
 ```
 
 True from August 14 (the 15th in UTC), known from September 3, recorded at import.
+
+## Install
+
+Three ways, all the same program. The binary is the unit of distribution; Docker wraps it. See [ADR 0011](docs/decisions/0011-single-binary-and-docker.md).
+
+**From source** (needs [Bun](https://bun.sh) 1.2 or later):
+
+```sh
+git clone https://github.com/YAGNI-App/YRM && cd YRM
+bun install
+bun run yrm -- --version          # run from source
+bun run build                     # or compile dist/yrm-bun-<os>-<arch> for this machine
+```
+
+`bun run scripts/build.ts --target bun-linux-x64` cross-compiles; `--all` builds every release target.
+
+**Binary**, once the first release is published: macOS and Linux on x64 or arm64.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/YAGNI-App/YRM/main/scripts/install.sh | sh
+```
+
+The script downloads `yrm-bun-<os>-<arch>` from the latest release to `~/.local/bin/yrm` and checks it against the release's `SHA256SUMS`. `YRM_VERSION=v0.1.0` pins a release; `YRM_INSTALL_DIR` changes where it goes. On Windows, download `yrm-bun-windows-x64.exe` from the release page. There is no auto-update: run the script again to upgrade.
+
+**Docker**, once the first release is published (or `docker build -t yrm .` from a checkout):
+
+```sh
+docker run -d --name yrm -p 127.0.0.1:7777:7777 -v yrm-data:/data \
+  -e YRM_SELF=you@example.com -e TZ=America/Denver ghcr.io/yagni-app/yrm
+docker run --rm -v yrm-data:/data -v ~/mail:/import:ro ghcr.io/yagni-app/yrm import /import
+```
+
+The image runs `yrm web` on port 7777 as a non-root user. Any `yrm` command works as the container's arguments.
+
+## Self-hosting
+
+- **One volume holds everything.** `/data` in the container is the project directory: `yrm.config.ts`, the SQLite store under `.yrm/local/` and any `.yrm/extensions/*.ts`. On first start with an empty volume the image runs `yrm init` (filled from `YRM_SELF` and `YRM_NAME`); edit `/data/yrm.config.ts` after that. Back up the volume and you have backed up YRM. [docker-compose.yml](docker-compose.yml) is a starting point.
+- **Keep it on localhost.** The dashboard and MCP server have no authentication in 0.1, and `yrm web` warns when it listens beyond loopback. Publish the port to `127.0.0.1`, or put it behind your own authenticating proxy. Token auth for non-loopback binds is in progress ([#33](https://github.com/YAGNI-App/YRM/issues/33)). MCP over stdio works today (`docker run -i --rm -v yrm-data:/data ghcr.io/yagni-app/yrm serve`); MCP over HTTP on port 7788 is planned.
+- **Postgres is optional and in progress** ([#20](https://github.com/YAGNI-App/YRM/issues/20)). SQLite is the default and needs nothing else. The compose file has a `postgres:16` service behind a profile and the storage block to switch to once the store lands.
+- **Gmail** syncs through your own Google Cloud project and OAuth client, so your mail never passes through anyone else's app. See [packages/ext-gmail/README.md](packages/ext-gmail/README.md). Sign-in redirects your browser to `127.0.0.1` on the machine running `yrm gmail:setup`, which a container's loopback is not; with Docker, bind-mount a host directory as `/data`, run `gmail:setup` there with the binary, and let the container sync from then on (tokens live in the store).
+- **Models are local or bring-your-own-key.** Point the triage and extract tiers at Ollama, vLLM or any OpenAI-compatible endpoint (from a container, the host is `host.docker.internal`), and set `ANTHROPIC_API_KEY` or another provider's key in the environment for hosted tiers. With neither, YRM runs on rule-based extraction and ranking and nothing leaves the machine.
 
 ## Built in public by YAGNI's agent Teams
 

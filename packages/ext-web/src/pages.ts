@@ -22,6 +22,7 @@ import {
 } from "./components.ts";
 import { html, qs, type Html, type Renderable } from "./html.ts";
 import { addDays, fmtDay } from "./time.ts";
+import { viewsSection } from "./views-section.ts";
 
 const NAV: Array<[string, string]> = [
   ["/", "Today"],
@@ -215,6 +216,7 @@ ${page.mergedFrom ? html`<p class="notice">${page.mergedFrom} was merged into th
   <div>${entityActions(v, e.id, e.status)}</div>
 </div>
 ${timeMachineControl(v, tm)}
+${viewsSection(v, page)}
 ${page.people.length ? html`<section><h2>People</h2><ul class="chips">${page.people.map((p) => html`<li>${entityLink(p.id, p.name, t)} ${statusChip(p.status)}</li>`)}</ul></section>` : ""}
 <section>
   <h2>Facts <span class="muted small">${tm.engaged ? `true at ${tm.validDate ? fmtDay(tm.validDate, v.tz) : "now"}, as known by ${tm.asOfDate ? fmtDay(tm.asOfDate, v.tz) : "now"}` : "oldest first"}</span></h2>

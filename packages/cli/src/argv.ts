@@ -27,6 +27,7 @@ export const BOOLEAN_FLAGS: ReadonlySet<string> = new Set([
   "quiet",
   "version",
   "mcp",
+  "dry-run",
   "live",
 ]);
 

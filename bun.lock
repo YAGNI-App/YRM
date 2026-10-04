@@ -26,6 +26,7 @@
         "@yrm/ext-notes": "workspace:*",
         "@yrm/ext-resolve": "workspace:*",
         "@yrm/ext-slack": "workspace:*",
+        "@yrm/ext-views": "workspace:*",
         "@yrm/ext-web": "workspace:*",
         "@yrm/provider-anthropic": "workspace:*",
         "@yrm/provider-openai": "workspace:*",
@@ -107,6 +108,13 @@
         "@yrm/ext-resolve": "workspace:*",
       },
     },
+    "packages/ext-views": {
+      "name": "@yrm/ext-views",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/ext-web": {
       "name": "@yrm/ext-web",
       "version": "0.1.0",
@@ -181,6 +189,8 @@
     "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
 
     "@yrm/ext-slack": ["@yrm/ext-slack@workspace:packages/ext-slack"],
+
+    "@yrm/ext-views": ["@yrm/ext-views@workspace:packages/ext-views"],
 
     "@yrm/ext-web": ["@yrm/ext-web@workspace:packages/ext-web"],
 

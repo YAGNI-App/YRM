@@ -35,7 +35,7 @@ Tests must not need network or API keys. Mock providers through the `ModelProvid
 packages/core            @yrm/core      contracts, store (sqlite), extension host, router, pipeline
 packages/cli             @yrm/cli       the `yrm` command
 packages/provider-*      @yrm/provider-*  model providers (anthropic, openai-compatible)
-packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, mcp)
+packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, views, mcp, web)
 fixtures/                synthetic corpora with ground-truth facts, used by tests and demos
 docs/ARCHITECTURE.md     the design
 docs/decisions/          ADRs, numbered, never deleted; superseded ADRs say so at the top

@@ -1,21 +1,18 @@
 /**
- * Host-local error classes.
- *
- * `ConfigError` is a minimal stand-in until the shared `errors.ts` from the
- * store work lands; it is intentionally not re-exported from the host barrel so
- * the two cannot collide in `@yrm/core`'s public surface. Swap the import when
- * they merge.
+ * Host-local error classes. ConfigError specializes the shared one from
+ * ../errors.ts with the config file path; it is not re-exported from the
+ * host barrel because @yrm/core already exports the base class.
  */
+import { ConfigError as CoreConfigError } from "../errors.ts";
 
-export class ConfigError extends Error {
-  override name = "ConfigError";
+export class ConfigError extends CoreConfigError {
   constructor(
     message: string,
     /** Path to the config file, when known. */
     readonly file?: string,
     options?: { cause?: unknown },
   ) {
-    super(file ? `${message} (in ${file})` : message, options);
+    super("CONFIG_INVALID", file ? `${message} (in ${file})` : message, options);
   }
 }
 

@@ -49,10 +49,7 @@ export function hookContext(ctx: HostContext): HookContext {
   return { tenantId: ctx.config.tenant.id, store: ctx.store, models: ctx.models, log: ctx.log };
 }
 
-/** Rough token estimate: 4 characters per token. */
-export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
+import { estimateTokens } from "../models/pricing.ts";
 
 function eventTokens(e: SourceEvent): number {
   return e.content.tokens ?? estimateTokens(e.content.text);

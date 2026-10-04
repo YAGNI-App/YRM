@@ -44,7 +44,6 @@ export {
 } from "./logger.ts";
 export {
   bundleTokens,
-  estimateTokens,
   hookContext,
   markSelf,
   sortAndDedupe,

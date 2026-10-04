@@ -22,15 +22,16 @@ YRM is a shared record of relationships that many agents read and write. It is b
 
 ## Two kinds of time
 
-Every fact has four timestamps:
+Every fact has these timestamps:
 
 | Field | Meaning |
 |---|---|
 | \`validFrom\` .. \`validTo\` | **World time**: when it was true. |
-| \`recordedAt\` .. \`retractedAt\` | **Belief time**: when YRM believed it. |
+| \`knownAt\` | **Belief time**: when we could first have known it (for imported mail, when it was received). |
+| \`recordedAt\` .. \`retractedAt\` | When YRM wrote and retracted the row (audit; equals \`knownAt\` for live data). |
 
-Example: a champion left Acme on Aug 14, but the email saying so arrived Sep 3. The old \`works_at Acme\` fact has \`validTo: Aug 14\`
-and was retracted on Sep 3.
+Example: a champion left Acme on Aug 14, but the email saying so arrived Sep 3. Her job change has \`validFrom: Aug 14\`
+and \`knownAt: Sep 3\`, even if the mailbox was imported in October.
 
 - \`yrm_facts { validAt: "2026-08-20" }\` answers **"what was true on Aug 20?"** (she had already left).
 - \`yrm_facts { asOf: "2026-08-20" }\` answers **"what did we know on Aug 20?"** (our records still said Acme).

@@ -128,7 +128,24 @@ Today, 2026-10-03 for YAGNI  (13 items)
     (facts: 11, events: 10)
 ```
 
-`--date` ranks a day using everything known now. Add `--as-of <date>` to see only what had been recorded by then.
+`--date` ranks a day using everything known now. Add `--as-of <date>` to see only what was known by then; imported mail counts from when it was received, not from when you imported it ([ADR 0008](docs/decisions/0008-known-at-for-backfilled-facts.md)).
+
+The time machine. Priya Raman's farewell mail is dated August 14, but Acme's mail gateway held it until September 3. Take her Acme id from `who priya` (the one with `priya.raman@acme-robotics.example`) and ask what was true on August 20, as known on August 20 and then on September 5:
+
+```sh
+bun run ../../packages/cli/src/main.ts who priya
+bun run ../../packages/cli/src/main.ts facts <priya-acme-id> --at 2026-08-20 --as-of 2026-08-20
+bun run ../../packages/cli/src/main.ts facts <priya-acme-id> --at 2026-08-20 --as-of 2026-09-05
+```
+
+As of August 20 she works at Acme and there is no job change. As of September 5 the same day shows one more line (trimmed):
+
+```
+statement                                                                  type/predicate       valid         known       recorded
+Priya Raman is changing jobs: leaving Acme, joining Northwind Automation.  [signal/job_change]  2026-08-15..  2026-09-03  2026-10-04 18:21
+```
+
+True from August 14 (the 15th in UTC), known from September 3, recorded at import.
 
 ## Built in public by YAGNI's agent Teams
 

@@ -115,6 +115,10 @@ export interface FactView {
   validTo: string | null;
   recordedAt: string;
   retractedAt: string | null;
+  /** When the tenant could first have known it (ADR 0008); the time machine's "known by" compares against this. */
+  knownAt: string;
+  /** When the tenant knew it was superseded or retracted. */
+  knownUntil: string | null;
   confidence: number;
   origin: Fact["origin"];
   supersedes: string | null;
@@ -152,6 +156,8 @@ export async function factView(f: Fact, events: EventCache, state: FactState = "
     validTo: f.validTo ?? null,
     recordedAt: f.recordedAt,
     retractedAt: f.retractedAt ?? null,
+    knownAt: knownAt(f),
+    knownUntil: knownUntil(f) ?? null,
     confidence: f.confidence,
     origin: f.origin,
     supersedes: f.supersedes ?? null,
@@ -181,7 +187,7 @@ export async function collectFacts(store: Store, base: FactQuery, instants: Iter
 export interface TimeMachine {
   /** World time: what was true then. ISO instant. */
   validAt: string;
-  /** Belief time: what we had recorded by then. ISO instant. */
+  /** Belief time: what we knew by then (knowledge time, ADR 0008). ISO instant. */
   asOf: string;
   /** The dates as the controls show them (YYYY-MM-DD), when set. */
   validDate: string | null;
@@ -189,14 +195,24 @@ export interface TimeMachine {
   engaged: boolean;
 }
 
+/** Knowledge time (ADR 0008), falling back to transaction time for facts from older stores. */
+const knownAt = (f: Fact): string => f.knownAt ?? f.recordedAt;
+const knownUntil = (f: Fact): string | undefined => f.knownUntil ?? f.retractedAt;
+
+/**
+ * Where a fact stands under the time machine. "Known by" is knowledge time,
+ * so on imported history it means when the message arrived, not when YRM
+ * indexed it.
+ */
 export function classify(f: Fact, tm: TimeMachine, nowIso: string): FactState | null {
   const validAtV = f.validFrom <= tm.validAt && (f.validTo === undefined || f.validTo > tm.validAt);
-  if (f.recordedAt > tm.asOf) {
+  const until = knownUntil(f);
+  if (knownAt(f) > tm.asOf) {
     // Learned later. Show it only if it describes the chosen moment and we still believe it.
-    const believedNow = f.retractedAt === undefined || f.retractedAt > nowIso;
+    const believedNow = until === undefined || until > nowIso;
     return validAtV && believedNow ? "not-yet-known" : null;
   }
-  if (f.retractedAt !== undefined && f.retractedAt <= tm.asOf) return "retracted";
+  if (until !== undefined && until <= tm.asOf) return "retracted";
   if (f.validFrom > tm.validAt) return "future";
   if (f.validTo !== undefined && f.validTo <= tm.validAt) return "ended";
   return "current";
@@ -294,12 +310,13 @@ export async function entityPage(deps: WebDeps, id: string, tm: TimeMachine): Pr
     }
     const v = await factView(f, cache, state);
     v.supersededBy = supersededBy.get(f.id) ?? null;
-    if (state !== "retracted" && state !== "not-yet-known" && f.retractedAt !== undefined && f.retractedAt <= nowIso) {
-      v.laterRetractedAt = f.retractedAt;
+    const until = knownUntil(f);
+    if (state !== "retracted" && state !== "not-yet-known" && until !== undefined && until <= nowIso) {
+      v.laterRetractedAt = until;
     }
     facts.push(v);
   }
-  facts.sort((a, b) => a.validFrom.localeCompare(b.validFrom) || a.recordedAt.localeCompare(b.recordedAt));
+  facts.sort((a, b) => a.validFrom.localeCompare(b.validFrom) || a.knownAt.localeCompare(b.knownAt) || a.recordedAt.localeCompare(b.recordedAt));
 
   return {
     entity: entitySummary(entity),

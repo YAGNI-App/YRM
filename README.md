@@ -141,6 +141,9 @@ YRM is a demonstration of what an engineering team can do with [YAGNI](https://y
 
 Decisions are recorded as ADRs in `docs/decisions/`. The pull request history is the changelog.
 
+- **How the Teams work:** [docs/TEAMS.md](docs/TEAMS.md) (roles, labels, definition of done) and the [backlog](docs/BACKLOG.md).
+- **Demo:** [docs/DEMO.md](docs/DEMO.md), a seven-minute script on the Acme corpus.
+
 YRM is not a YAGNI product. It is a reference application and a candidate context layer for YAGNI itself, which connects to it the way any agent would: over MCP.
 
 ## Contributing

@@ -4,6 +4,10 @@ import { bootstrap, type BootstrapOptions } from "./bootstrap.ts";
 import { builtinCommands, cliExtension, cliManifest } from "./commands/index.ts";
 import type { CliEnv, FetchLike } from "./env.ts";
 import { createStyle, table } from "./format.ts";
+// The release version lives in the root package.json (ADR 0011); the bundler inlines it into the binary.
+import root from "../../../package.json" with { type: "json" };
+
+export const VERSION: string = root.version;
 
 export interface RunCliOptions {
   cwd?: string;
@@ -85,7 +89,7 @@ export async function runCli(argv: readonly string[], opts: RunCliOptions = {}):
 
   try {
     if (parsed.flags["version"] === true && name === undefined) {
-      stdout("yrm 0.1.0");
+      stdout(`yrm ${VERSION}`);
       return 0;
     }
 

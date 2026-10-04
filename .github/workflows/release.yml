@@ -1,0 +1,134 @@
+name: Release
+
+# On a v* tag: cross-compile the yrm binary for every target from one Linux
+# runner, run the demo against each binary on a machine that can execute it,
+# publish a GitHub Release with SHA256SUMS, and push the Docker image.
+# The tag must match the version in the root package.json (ADR 0011).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Tag matches package.json
+        run: |
+          version="v$(jq -r .version package.json)"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json version $version" >&2
+            exit 1
+          fi
+      - run: bun run check
+      - name: Cross-compile every target
+        run: bun run scripts/build.ts --all
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum yrm-bun-* > SHA256SUMS
+          cat SHA256SUMS
+          ls -l
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, asset: yrm-bun-linux-x64, demo: true }
+          - { runner: ubuntu-24.04-arm, asset: yrm-bun-linux-arm64, demo: true }
+          - { runner: macos-latest, asset: yrm-bun-darwin-arm64, demo: true }
+          # No Intel macOS runner is assumed; this checks the binary is not malformed under Rosetta.
+          - { runner: macos-latest, asset: yrm-bun-darwin-x64, demo: false, rosetta: true }
+          - { runner: windows-latest, asset: yrm-bun-windows-x64.exe, demo: false }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Verify checksum
+        shell: bash
+        working-directory: dist
+        run: |
+          grep " ${{ matrix.asset }}\$" SHA256SUMS > one.sum
+          if command -v sha256sum >/dev/null; then sha256sum -c one.sum; else shasum -a 256 -c one.sum; fi
+      - name: Demo
+        if: matrix.demo
+        run: |
+          chmod +x dist/${{ matrix.asset }}
+          sh scripts/smoke.sh dist/${{ matrix.asset }}
+      - name: Version under Rosetta
+        if: matrix.rosetta
+        run: |
+          sudo softwareupdate --install-rosetta --agree-to-license >/dev/null 2>&1 || true
+          chmod +x dist/${{ matrix.asset }}
+          arch -x86_64 dist/${{ matrix.asset }} --version
+      - name: Version
+        if: ${{ !matrix.demo && !matrix.rosetta }}
+        shell: bash
+        run: ./dist/${{ matrix.asset }} --version
+
+  release:
+    needs: smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/yrm-bun-* dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes \
+            --title "YRM $GITHUB_REF_NAME"
+
+  docker:
+    needs: smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push ghcr.io/yagni-app/yrm
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/yagni-app/yrm:${{ github.ref_name }}
+            ghcr.io/yagni-app/yrm:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+            org.opencontainers.image.licenses=Apache-2.0

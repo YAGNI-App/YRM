@@ -45,3 +45,16 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bun test packages/store-postgres
+
+  smoke:
+    # The compiled binary, run outside the repository: init, the Acme import
+    # (40 events), today, doctor, a project extension and the dashboard.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run scripts/build.ts
+      - run: sh scripts/smoke.sh dist/yrm-bun-linux-x64

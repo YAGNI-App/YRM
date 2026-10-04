@@ -10,5 +10,13 @@
   },
   "dependencies": {
     "ulid": "^2.3.0"
+  },
+  "peerDependencies": {
+    "@yrm/store-postgres": "*"
+  },
+  "peerDependenciesMeta": {
+    "@yrm/store-postgres": {
+      "optional": true
+    }
   }
 }

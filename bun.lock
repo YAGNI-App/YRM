@@ -16,6 +16,13 @@
         "ulid": "^2.3.0",
       },
     },
+    "packages/ext-extract": {
+      "name": "@yrm/ext-extract",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/provider-anthropic": {
       "name": "@yrm/provider-anthropic",
       "version": "0.1.0",
@@ -44,6 +51,8 @@
     "@types/node": ["@types/node@26.6.4", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg=="],
 
     "@yrm/core": ["@yrm/core@workspace:packages/core"],
+
+    "@yrm/ext-extract": ["@yrm/ext-extract@workspace:packages/ext-extract"],
 
     "@yrm/provider-anthropic": ["@yrm/provider-anthropic@workspace:packages/provider-anthropic"],
 

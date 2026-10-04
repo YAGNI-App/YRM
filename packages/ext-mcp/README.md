@@ -111,14 +111,12 @@ settings: {
 
 ## Host binding
 
-`ExtensionAPI` does not expose ranking, context bundles, ingest or the tool registry, and `yrm_today`, `yrm_context`, `yrm_record_note` and `serve` need them. Hand the host over in one of two ways:
+`ExtensionAPI` does not expose ranking, context bundles, ingest or the tool registry, and `yrm_today`, `yrm_context`, `yrm_record_note` and `serve` need them. `host.start()` emits `HOST_READY_TOPIC` (`"host:ready"`) with the host on the extension event bus, and this extension binds to it, so a host that loads extensions and then starts (as the CLI does) needs nothing extra. To bind before start, hand it over explicitly:
 
 ```ts
-import mcp, { createMcpExtension, HOST_READY_TOPIC, manifest } from "@yrm/ext-mcp";
+import { createMcpExtension, manifest } from "@yrm/ext-mcp";
 
-await host.use(createMcpExtension({ host }), manifest); // explicit
-// or, after loading extensions by name:
-host.events.emit(HOST_READY_TOPIC, host);
+await host.use(createMcpExtension({ host }), manifest);
 ```
 
 Without it, store-only tools still work and the others return a `MCP_HOST_NOT_BOUND` error that says how to fix it.

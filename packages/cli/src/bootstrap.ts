@@ -27,7 +27,7 @@ import openAIProvider, {
   OpenAICompatibleProvider,
   readOpenAIConfig,
 } from "@yrm/provider-openai";
-import { BUILTINS, packageShortName } from "./builtins.ts";
+import { BUILTINS, BUNDLED, packageShortName } from "./builtins.ts";
 import { SqliteUsageSink } from "./usage-sink.ts";
 
 /**
@@ -177,13 +177,22 @@ export async function bootstrap(opts: BootstrapOptions): Promise<Booted> {
     }
 
     const builtins: BuiltinStatus[] = [];
-    const importModule = opts.importModule ?? ((spec: string) => importFrom(spec, root));
+    const importModule = opts.importModule ?? ((spec: string) => importBuiltin(spec, root));
     for (const spec of opts.builtins ?? BUILTINS) {
       builtins.push(await loadBuiltin(host, spec, disabled, importModule, log));
     }
 
+    // First-party packages named in `extensions` (ext-gmail) come from the
+    // bundled map, not from disk: a compiled binary has no node_modules to
+    // resolve them from. They load before paths and third-party packages.
     const extra = (config.extensions ?? []).filter((s) => !SELF_WIRED.has(s));
-    await host.loadExtensions(extra, opts.homeDir === undefined ? {} : { homeDir: opts.homeDir });
+    for (const spec of extra.filter((s) => s in BUNDLED)) {
+      builtins.push(await loadBuiltin(host, spec, disabled, importModule, log));
+    }
+    await host.loadExtensions(
+      extra.filter((s) => !(s in BUNDLED)),
+      opts.homeDir === undefined ? {} : { homeDir: opts.homeDir },
+    );
     await host.start();
     return { host, config, configFile, root, builtins };
   } catch (err) {
@@ -196,8 +205,14 @@ function hookCtx(host: Host) {
   return { tenantId: host.config.tenant.id, store: host.store, models: host.models, log: host.log };
 }
 
-/** The project's own copy wins (like the loader); otherwise resolve from the CLI install. */
-async function importFrom(spec: string, root: string): Promise<unknown> {
+/**
+ * Bundled packages import statically (see BUNDLED), so a compiled binary and
+ * a source checkout load the same code. Anything else resolves from the
+ * project first, like the loader, then from the CLI install.
+ */
+async function importBuiltin(spec: string, root: string): Promise<unknown> {
+  const bundled = BUNDLED[spec];
+  if (bundled) return bundled();
   let target = spec;
   try {
     target = Bun.resolveSync(spec, root);

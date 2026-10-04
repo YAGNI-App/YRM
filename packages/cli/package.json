@@ -12,6 +12,15 @@
   },
   "dependencies": {
     "@yrm/core": "workspace:*",
+    "@yrm/ext-attention": "workspace:*",
+    "@yrm/ext-calendar": "workspace:*",
+    "@yrm/ext-extract": "workspace:*",
+    "@yrm/ext-gmail": "workspace:*",
+    "@yrm/ext-mail": "workspace:*",
+    "@yrm/ext-mcp": "workspace:*",
+    "@yrm/ext-notes": "workspace:*",
+    "@yrm/ext-resolve": "workspace:*",
+    "@yrm/ext-web": "workspace:*",
     "@yrm/provider-anthropic": "workspace:*",
     "@yrm/provider-openai": "workspace:*"
   }

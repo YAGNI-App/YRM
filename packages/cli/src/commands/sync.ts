@@ -45,7 +45,8 @@ export function syncCommand(env: CliEnv): BuiltinCommand {
         ctx.stderr(`unknown source "${source}"; registered: ${known.join(", ")}`);
         return 1;
       }
-      const summary = await host.run(source);
+      // Sync delivers events as they arrive, so what it learns is known now.
+      const summary = await host.run(source, { live: true });
       for (const line of formatRunSummary(summary)) ctx.stdout(line);
       return 0;
     },

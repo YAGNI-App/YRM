@@ -49,6 +49,31 @@ export function formatEntity(e: Entity, style: Style = createStyle(false)): stri
   return lines;
 }
 
+/**
+ * Current view values (attribute facts named `view.<name>`, see ADR 0010),
+ * one line. Read from facts so it works whether or not @yrm/ext-views loaded.
+ */
+export async function viewLine(host: Host, e: Entity): Promise<string> {
+  const facts = (await host.store.queryFacts({ tenantId: host.config.tenant.id, subjectId: e.id, type: "attribute" })).filter((f) =>
+    f.predicate.startsWith("view."),
+  );
+  const best = new Map<string, (typeof facts)[number]>();
+  for (const f of facts) {
+    const name = f.predicate.slice(5);
+    const cur = best.get(name);
+    const human = (x: typeof f): number => (x.origin.kind === "human" ? 1 : 0);
+    if (!cur || human(f) > human(cur) || (human(f) === human(cur) && f.confidence > cur.confidence)) best.set(name, f);
+  }
+  return [...best.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, f]) => {
+      const v = f.value as { name?: unknown } | string | number | boolean | null;
+      const shown = typeof v === "object" && v !== null && typeof v.name === "string" ? v.name : typeof v === "string" ? v : JSON.stringify(v);
+      return `${name}=${shown}`;
+    })
+    .join("  ·  ");
+}
+
 function statusTag(e: Entity, style: Style): string {
   const color = e.status === "confirmed" ? style.green : style.yellow;
   return `[${color(e.status)}]`;
@@ -128,6 +153,8 @@ export function whoCommand(env: CliEnv): BuiltinCommand {
       }
       for (const e of found) {
         for (const line of formatEntity(e, env.style)) ctx.stdout(line);
+        const views = await viewLine(host, e);
+        if (views) ctx.stdout(`  ${env.style.dim("views")} ${views}`);
         if (ctx.flags["facts"] === true) {
           const facts = await host.store.queryFacts({ tenantId: host.config.tenant.id, entityId: e.id });
           for (const line of formatFacts(facts, { style: env.style, indent: "    " })) ctx.stdout(line);

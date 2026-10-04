@@ -13,7 +13,8 @@ SourceEvent  ──(resolve)──▶  Participant.entityId ──▶ Entity (pr
      │
      └──(extract)──▶  Fact { type, subject, predicate, value,
                               validFrom..validTo,        world time
-                              recordedAt..retractedAt,   belief time
+                              knownAt..knownUntil,       belief time (ADR 0008)
+                              recordedAt..retractedAt,   when the row was written
                               provenance[eventId, speaker, quote, span],
                               origin{human|model|rule, by, version},
                               supersedes }
@@ -24,15 +25,15 @@ SourceEvent  ──(resolve)──▶  Participant.entityId ──▶ Entity (pr
 
 **Events** are immutable and idempotent on `(tenant, source, externalId)`. Ingesters strip quoted text and signatures so `content.text` is only what is new. The stripped text is kept for provenance spans.
 
-**Facts** are edges. Four timestamps: `validFrom`/`validTo` say when it was true in the world; `recordedAt`/`retractedAt` say when we believed it. A champion who changed jobs in June that we learned about in August has `validTo: June`, `retractedAt: August` on the old `works_at` fact. Queries take `validAt` and `asOf` so an agent can ask what was true, and what we knew, at any point.
+**Facts** are edges. `validFrom`/`validTo` say when it was true in the world; `knownAt`/`knownUntil` say when we knew it; `recordedAt`/`retractedAt` say when YRM wrote and closed the row. For live data the last two pairs agree. For imported history `knownAt` comes from the event (when the message was received), so a mailbox imported in October still remembers what was known in June ([ADR 0008](decisions/0008-known-at-for-backfilled-facts.md)). A champion who changed jobs in June that we learned about in August has `validTo: June`, `knownUntil: August` on the old `works_at` fact. Queries take `validAt` and `asOf` (knowledge time) so an agent can ask what was true, and what we knew, at any point.
 
-Facts are never edited. A new fact `supersedes` an old one and the store closes the old one's transaction time. **Reconciliation rule:** a `human` origin outranks `model` and `rule` origins on the same subject and predicate, and a human override is never superseded by a model re-deriving the old value. The store enforces this.
+Facts are never edited. A new fact `supersedes` an old one and the store closes the old one's transaction and knowledge time. **Reconciliation rule:** a `human` origin outranks `model` and `rule` origins on the same subject and predicate, and a human override is never superseded by a model re-deriving the old value. The store enforces this.
 
 **Commitments, asks, decisions and objections are fact types**, not notes. A commitment has parties, a due date, a status and, when resolved, the event that resolved it. This is the "decision trace" idea applied to relationships.
 
 **Entities** are projections. The resolver proposes a person for every address and an organization for every non-freemail domain. Status moves `proposed → confirmed | rejected | merged` only by human action or by a confident rule, and the move is recorded so re-ingestion never undoes it.
 
-**Views** are user-defined fields described in natural language ("the economic buyer for this deal: the person who controls the budget, usually visible from who approves pricing"). The host backfills them from facts. This is how users shape their own schema without migrations.
+**Views** are user-defined fields described in natural language ("the economic buyer for this deal: the person who controls the budget, usually visible from who approves pricing"). The host backfills them from facts. This is how users shape their own schema without migrations. A view value is an `attribute` fact with predicate `view.<name>`, computed by a rule or on the `extract` tier and recorded with provenance like any other fact; `@yrm/ext-views` and ADR 0010 have the details.
 
 ## The pipeline
 
@@ -81,7 +82,7 @@ Tables (SQLite): `events`, `event_participants`, `facts`, `fact_provenance`, `en
 
 ## Hosts
 
-- **CLI** (`yrm`): `init`, `sync`, `import <path>`, `today`, `who <query>`, `facts <entity>`, `confirm`, `merge`, `doctor`, `serve`. Commands are extensions; built-ins live in `@yrm/cli`.
+- **CLI** (`yrm`): `init`, `sync`, `import <path>`, `today`, `who <query>`, `facts <entity>`, `view`, `confirm`, `merge`, `doctor`, `serve`. Commands are extensions; built-ins live in `@yrm/cli`.
 - **MCP server** (`yrm serve --mcp`): exposes registered `Tool`s. Reads are auto-approved; writes require confirmation from the host. Every fact returned carries provenance so the calling agent can judge trust.
 - **Embedded**: `createHost(config)` returns a host with `store`, `models`, `run(stage)` and `context(request)`. Other agent runtimes (pi, YAGNI, Claude Code) use this or MCP.
 

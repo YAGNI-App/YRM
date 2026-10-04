@@ -155,7 +155,7 @@ function factsTool(): Tool {
     name: "yrm_facts",
     description:
       "Query facts, YRM's bi-temporal knowledge. Every fact has two time ranges: " +
-      "validFrom..validTo is WORLD time (when it was true), recordedAt..retractedAt is BELIEF time (when YRM believed it). " +
+      "validFrom..validTo is WORLD time (when it was true), knownAt is BELIEF time (when we could first have known it; for imported mail, when it was received), recordedAt..retractedAt is when YRM wrote the row. " +
       "`validAt` answers 'what was true at T' (e.g. where did Priya work on Aug 20?). " +
       "`asOf` answers 'what did we know at T' (e.g. what did our records say on Aug 20, before we heard she left?). " +
       "Both default to now; set both to replay an earlier view exactly. `includeRetracted` returns superseded and retracted versions too (full history). " +
@@ -168,7 +168,7 @@ function factsTool(): Tool {
         type: { type: "string", description: "Fact type, e.g. commitment, ask, objection, relationship, attribute." },
         predicate: { type: "string", description: "Exact predicate, e.g. works_at, committed_to, title." },
         validAt: { type: "string", description: "World time (ISO 8601): only facts true at this moment. Default now." },
-        asOf: { type: "string", description: "Belief time (ISO 8601): only facts YRM had recorded and not yet retracted at this moment. Default now." },
+        asOf: { type: "string", description: "Belief time (ISO 8601): only facts known by this moment (knownAt) and not yet superseded or retracted then. Default now." },
         includeRetracted: { type: "boolean", description: "Include superseded/retracted versions (ignores asOf)." },
         limit: LIMIT_PROP,
       },

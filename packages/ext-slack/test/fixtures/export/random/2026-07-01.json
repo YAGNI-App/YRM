@@ -1,0 +1,15 @@
+[
+  {
+    "type": "message",
+    "ts": "1782920000.000100",
+    "user": "U03TOM",
+    "text": "Lunch at noon? <!here>"
+  },
+  {
+    "type": "message",
+    "subtype": "channel_leave",
+    "ts": "1782921000.000200",
+    "user": "U09GONE",
+    "text": "<@U09GONE> has left the channel"
+  }
+]

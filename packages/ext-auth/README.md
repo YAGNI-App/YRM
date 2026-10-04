@@ -1,6 +1,6 @@
 # @yrm/ext-auth
 
-Authentication for YRM's network surfaces: `yrm web` and `yrm serve --http`. It registers no tools and nothing model-facing, only the `yrm auth` command; `@yrm/ext-web` and `@yrm/ext-mcp` import its helpers. The reasoning is in [ADR 0008](../../docs/decisions/0008-static-bearer-tokens-with-loopback-bypass.md) and [the threat model](../../docs/SECURITY-MODEL.md).
+Authentication for YRM's network surfaces: `yrm web` and `yrm serve --http`. It registers no tools and nothing model-facing, only the `yrm auth` command; `@yrm/ext-web` and `@yrm/ext-mcp` import its helpers. The reasoning is in [ADR 0012](../../docs/decisions/0012-static-bearer-tokens-with-loopback-bypass.md) and [the threat model](../../docs/SECURITY-MODEL.md).
 
 ## How a request gets in
 

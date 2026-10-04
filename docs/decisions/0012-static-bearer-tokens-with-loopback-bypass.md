@@ -1,4 +1,4 @@
-# 0008. Authenticate network surfaces with static bearer tokens and a loopback bypass
+# 0012. Authenticate network surfaces with static bearer tokens and a loopback bypass
 
 Date: 2026-10-04
 Status: accepted

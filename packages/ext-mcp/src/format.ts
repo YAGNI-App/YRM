@@ -32,6 +32,8 @@ export interface FactOut {
   validTo: string | null;
   recordedAt: string;
   retractedAt: string | null;
+  /** When the tenant could first have known it; differs from recordedAt for imported history. */
+  knownAt: string;
   confidence: number;
   origin: Fact["origin"];
   supersedes: string | null;
@@ -82,6 +84,7 @@ export async function formatFact(fact: Fact, events: EventCache): Promise<FactOu
     validTo: fact.validTo ?? null,
     recordedAt: fact.recordedAt,
     retractedAt: fact.retractedAt ?? null,
+    knownAt: fact.knownAt ?? fact.recordedAt,
     confidence: fact.confidence,
     origin: fact.origin,
     supersedes: fact.supersedes ?? null,

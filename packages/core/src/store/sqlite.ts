@@ -96,6 +96,8 @@ interface FactRow {
   valid_to: string | null;
   recorded_at: string;
   retracted_at: string | null;
+  known_at: string;
+  known_until: string | null;
   confidence: number;
   origin_kind: string;
   origin_by: string;
@@ -410,9 +412,14 @@ export class SqliteStore implements Store {
     if (validTo !== undefined && validTo < validFrom) {
       throw new StoreError("INVALID_INPUT", "validTo is before validFrom");
     }
+    const requestedKnownAt = input.knownAt === undefined ? undefined : iso(input.knownAt, "knownAt");
 
     return db.transaction(() => {
       const recordedAt = this.now();
+      // Knowledge time may be earlier than transaction time (an imported
+      // message received in August), never later: nothing is known before it
+      // is written down.
+      const knownAt = requestedKnownAt !== undefined && requestedKnownAt < recordedAt ? requestedKnownAt : recordedAt;
       let old: FactRow | null = null;
       if (input.supersedes !== undefined) {
         old = this.factRow(input.supersedes);
@@ -445,7 +452,10 @@ export class SqliteStore implements Store {
       }
 
       if (old) {
-        db.run("UPDATE facts SET retracted_at = ? WHERE id = ?", [recordedAt, old.id]);
+        // Recorded out of order (a successor known before its predecessor),
+        // the old fact's knowledge window is empty rather than inverted.
+        const knownUntil = knownAt > old.known_at ? knownAt : old.known_at;
+        db.run("UPDATE facts SET retracted_at = ?, known_until = ? WHERE id = ?", [recordedAt, knownUntil, old.id]);
         this.audit(old.id, "superseded", input.origin.by, recordedAt);
 
         // A successor that starts later in world time says the world changed,
@@ -457,7 +467,10 @@ export class SqliteStore implements Store {
           closure.id = newId();
           closure.validTo = validFrom;
           closure.recordedAt = recordedAt;
+          // The bridge is known exactly when the old fact stops being known.
+          closure.knownAt = knownUntil;
           delete closure.retractedAt;
+          delete closure.knownUntil;
           closure.supersedes = old.id;
           this.insertFact(closure);
           this.audit(closure.id, "valid_time_closed", input.origin.by, recordedAt);
@@ -474,6 +487,7 @@ export class SqliteStore implements Store {
         statement: input.statement,
         validFrom,
         recordedAt,
+        knownAt,
         provenance: input.provenance.map((p) => ({ ...p })),
         confidence,
         origin: { ...input.origin },
@@ -496,7 +510,9 @@ export class SqliteStore implements Store {
         throw new StoreError("FACT_ALREADY_RETRACTED", `fact ${id} is already retracted or superseded`);
       }
       const at = this.now();
-      db.run("UPDATE facts SET retracted_at = ? WHERE id = ?", [at, id]);
+      // A retraction is a decision made now; the tenant knows it now.
+      const knownUntil = at > row.known_at ? at : row.known_at;
+      db.run("UPDATE facts SET retracted_at = ?, known_until = ? WHERE id = ?", [at, knownUntil, id]);
       this.audit(id, "retract", by, at);
     })();
   }
@@ -533,7 +549,9 @@ export class SqliteStore implements Store {
 
     if (!query.includeRetracted) {
       const asOf = query.asOf === undefined ? now : iso(query.asOf, "asOf");
-      where.push("f.recorded_at <= ? AND (f.retracted_at IS NULL OR f.retracted_at > ?)");
+      // Knowledge time, not transaction time: see ADR 0008. known_until is
+      // never later than retracted_at, so this also excludes retracted rows.
+      where.push("f.known_at <= ? AND (f.known_until IS NULL OR f.known_until > ?)");
       params.push(asOf, asOf);
     }
     if (query.tenantId !== undefined) {
@@ -591,9 +609,9 @@ export class SqliteStore implements Store {
     const db = this.db;
     db.run(
       `INSERT INTO facts (id, tenant_id, type, subject_id, subject_name, object_id, object_name, predicate,
-         value_json, statement, valid_from, valid_to, recorded_at, retracted_at, confidence,
+         value_json, statement, valid_from, valid_to, recorded_at, retracted_at, known_at, known_until, confidence,
          origin_kind, origin_by, origin_model, origin_version, supersedes, tags_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         fact.id,
         fact.tenantId,
@@ -609,6 +627,8 @@ export class SqliteStore implements Store {
         fact.validTo ?? null,
         fact.recordedAt,
         fact.retractedAt ?? null,
+        fact.knownAt ?? fact.recordedAt,
+        fact.knownUntil ?? null,
         fact.confidence,
         fact.origin.kind,
         fact.origin.by,
@@ -675,6 +695,7 @@ export class SqliteStore implements Store {
       statement: r.statement,
       validFrom: r.valid_from,
       recordedAt: r.recorded_at,
+      knownAt: r.known_at,
       provenance,
       confidence: r.confidence,
       origin: { kind: r.origin_kind as Fact["origin"]["kind"], by: r.origin_by },
@@ -686,6 +707,7 @@ export class SqliteStore implements Store {
     }
     if (r.valid_to !== null) fact.validTo = r.valid_to;
     if (r.retracted_at !== null) fact.retractedAt = r.retracted_at;
+    if (r.known_until !== null) fact.knownUntil = r.known_until;
     if (r.origin_model !== null) fact.origin.model = r.origin_model;
     if (r.origin_version !== null) fact.origin.version = r.origin_version;
     if (r.supersedes !== null) fact.supersedes = r.supersedes;

@@ -1,6 +1,6 @@
 # Security model
 
-The threat model for YRM 0.1: what we protect, where the boundaries are, what can go wrong, and what the code does about it. To report a vulnerability, see [SECURITY.md](../SECURITY.md). The mechanism behind the network-facing parts is recorded in [ADR 0008](decisions/0008-static-bearer-tokens-with-loopback-bypass.md).
+The threat model for YRM 0.1: what we protect, where the boundaries are, what can go wrong, and what the code does about it. To report a vulnerability, see [SECURITY.md](../SECURITY.md). The mechanism behind the network-facing parts is recorded in [ADR 0012](decisions/0012-static-bearer-tokens-with-loopback-bypass.md).
 
 ## Assets
 

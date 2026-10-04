@@ -1,0 +1,14 @@
+.git
+.github
+.claude
+node_modules
+**/node_modules
+dist
+**/.yrm
+*.sqlite
+*.sqlite-*
+.DS_Store
+docs
+fixtures
+**/test
+**/*.test.ts

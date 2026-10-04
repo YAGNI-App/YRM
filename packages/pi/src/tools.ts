@@ -161,7 +161,7 @@ function factsTool(lazy: LazyHost): PiToolDefinition {
     description:
       "Query YRM's bi-temporal facts. `validAt` = what was true in the world at T; `asOf` = what YRM believed at T " +
       "(both default to now; set both to replay an earlier view). Each fact has provenance (event id, speaker, quote), " +
-      "validFrom/validTo, recordedAt/retractedAt, confidence and origin (human > model > rule). " +
+      "validFrom/validTo, knownAt (when we could first have known it), recordedAt/retractedAt, confidence and origin (human > model > rule). " +
       "Codemode tool: call it from a script and print only the facts you need.",
     parameters: FactsParams,
     outputSchema: FactsOutput,

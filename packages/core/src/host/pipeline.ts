@@ -60,6 +60,29 @@ function eventTokens(e: SourceEvent): number {
 
 export interface StageOptions {
   signal?: AbortSignal;
+  /**
+   * Events are arriving as they happen (`sync`), so facts drawn from them are
+   * known now. Off for imports of history, where a fact is known from when its
+   * event was received (ADR 0008).
+   */
+  live?: boolean;
+}
+
+/**
+ * When the tenant could first have known what `event` says: the time it was
+ * received (`meta.receivedAt`, which a mail source takes from the last
+ * Received header), else when it occurred. Undefined in a live run, which
+ * leaves the store's default (now). The store clamps it to the record time.
+ */
+export function eventKnownAt(event: SourceEvent, live = false): string | undefined {
+  if (live) return undefined;
+  const received = event.meta["receivedAt"];
+  if (typeof received === "string" && !Number.isNaN(Date.parse(received))) return new Date(received).toISOString();
+  return event.occurredAt;
+}
+
+function withKnownAt<F extends NewFact>(fact: F, knownAt: string | undefined): F {
+  return fact.knownAt !== undefined || knownAt === undefined ? fact : { ...fact, knownAt };
 }
 
 export interface IngestResult {
@@ -193,7 +216,7 @@ interface Recorded {
  * through it. Resolvers write through `ResolveContext.store`; this is how the
  * host learns what is new without widening the Resolver contract.
  */
-function recordingStore(store: Store, recorded: Recorded): Store {
+function recordingStore(store: Store, recorded: Recorded, knownAt?: string): Store {
   return new Proxy(store, {
     get(target, prop) {
       if (prop === "createEntity") {
@@ -205,7 +228,7 @@ function recordingStore(store: Store, recorded: Recorded): Store {
       }
       if (prop === "recordFact") {
         return async (fact: NewFact): Promise<Fact> => {
-          const out = await target.recordFact(fact);
+          const out = await target.recordFact(withKnownAt(fact, knownAt));
           recorded.facts.push(out);
           return out;
         };
@@ -216,10 +239,11 @@ function recordingStore(store: Store, recorded: Recorded): Store {
   });
 }
 
-export async function resolve(ctx: HostContext, event: SourceEvent): Promise<ResolveResult> {
+export async function resolve(ctx: HostContext, event: SourceEvent, opts: StageOptions = {}): Promise<ResolveResult> {
   const tenantId = ctx.config.tenant.id;
   const recorded: Recorded = { entities: [], facts: [] };
-  const store = recordingStore(ctx.store, recorded);
+  // Resolver facts (works_at, same-person suggestions) are known when the event was.
+  const store = recordingStore(ctx.store, recorded, eventKnownAt(event, opts.live));
   const participants = event.participants.map((p) => ({ ...p }));
   const fresh: Array<{ index: number; entityId: string }> = [];
   const unresolved = (): number[] =>
@@ -375,10 +399,13 @@ export async function extract(ctx: HostContext, event: SourceEvent, opts: StageO
   }
 
   const filtered = await ctx.hooks.pipe("extract:after", hctx, ev, proposed);
+  // Including supersedes closures (an ask answered, a commitment kept): the
+  // closing event is when the tenant learned of the change.
+  const knownAt = eventKnownAt(ev, opts.live);
   const recorded: Fact[] = [];
   for (const f of filtered) {
     const fact = await ctx.store.recordFact({
-      ...f,
+      ...withKnownAt(f, knownAt),
       tenantId: f.tenantId ?? tenantId,
       confidence: f.confidence ?? DEFAULT_CONFIDENCE,
       // Every fact must point at evidence; the event it came from is the minimum.
@@ -498,7 +525,7 @@ export async function run(ctx: HostContext, sourceName?: string, opts: StageOpti
   let facts = 0;
   const resolvedEvents: SourceEvent[] = [];
   for (const e of created) {
-    const r = await resolve(ctx, e);
+    const r = await resolve(ctx, e, opts);
     resolved += r.assigned;
     facts += r.facts.length;
     for (const ent of r.entities) touched.add(ent.id);

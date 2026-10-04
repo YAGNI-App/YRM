@@ -32,7 +32,7 @@ Facts are never edited. A new fact `supersedes` an old one and the store closes 
 
 **Entities** are projections. The resolver proposes a person for every address and an organization for every non-freemail domain. Status moves `proposed → confirmed | rejected | merged` only by human action or by a confident rule, and the move is recorded so re-ingestion never undoes it.
 
-**Views** are user-defined fields described in natural language ("the economic buyer for this deal: the person who controls the budget, usually visible from who approves pricing"). The host backfills them from facts. This is how users shape their own schema without migrations.
+**Views** are user-defined fields described in natural language ("the economic buyer for this deal: the person who controls the budget, usually visible from who approves pricing"). The host backfills them from facts. This is how users shape their own schema without migrations. A view value is an `attribute` fact with predicate `view.<name>`, computed by a rule or on the `extract` tier and recorded with provenance like any other fact; `@yrm/ext-views` and ADR 0010 have the details.
 
 ## The pipeline
 
@@ -81,7 +81,7 @@ Tables (SQLite): `events`, `event_participants`, `facts`, `fact_provenance`, `en
 
 ## Hosts
 
-- **CLI** (`yrm`): `init`, `sync`, `import <path>`, `today`, `who <query>`, `facts <entity>`, `confirm`, `merge`, `doctor`, `serve`. Commands are extensions; built-ins live in `@yrm/cli`.
+- **CLI** (`yrm`): `init`, `sync`, `import <path>`, `today`, `who <query>`, `facts <entity>`, `view`, `confirm`, `merge`, `doctor`, `serve`. Commands are extensions; built-ins live in `@yrm/cli`.
 - **MCP server** (`yrm serve --mcp`): exposes registered `Tool`s. Reads are auto-approved; writes require confirmation from the host. Every fact returned carries provenance so the calling agent can judge trust.
 - **Embedded**: `createHost(config)` returns a host with `store`, `models`, `run(stage)` and `context(request)`. Other agent runtimes (pi, YAGNI, Claude Code) use this or MCP.
 

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "U01JACK",
+    "name": "jack",
+    "real_name": "Jack Collins",
+    "tz": "America/Denver",
+    "profile": { "email": "Jack@yagni.example", "title": "Founder", "real_name": "Jack Collins", "display_name": "jack" }
+  },
+  {
+    "id": "U02MARIA",
+    "name": "maria",
+    "real_name": "Maria Lopez",
+    "tz": "America/Chicago",
+    "profile": { "email": "maria@acme.example", "title": "VP Operations", "real_name": "Maria Lopez", "display_name": "maria" }
+  },
+  {
+    "id": "U03TOM",
+    "name": "tom",
+    "real_name": "Tom Fischer",
+    "tz": "Europe/Berlin",
+    "profile": { "email": "tom@acme.example", "title": "", "real_name": "Tom Fischer", "display_name": "tom" }
+  },
+  {
+    "id": "U04PRIYA",
+    "name": "priya",
+    "real_name": "Priya Raman",
+    "tz": "Asia/Kolkata",
+    "profile": { "title": "Solutions Engineer", "real_name": "Priya Raman", "display_name": "priya" }
+  },
+  {
+    "id": "U05DEPLOY",
+    "name": "deploybot",
+    "real_name": "Deploy Bot",
+    "is_bot": true,
+    "profile": { "real_name": "Deploy Bot" }
+  },
+  {
+    "id": "U09GONE",
+    "name": "sam",
+    "real_name": "Sam Ortiz",
+    "deleted": true,
+    "profile": { "email": "sam@acme.example", "real_name": "Sam Ortiz" }
+  }
+]

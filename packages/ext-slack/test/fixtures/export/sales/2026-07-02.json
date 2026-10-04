@@ -1,0 +1,31 @@
+[
+  {
+    "type": "message",
+    "ts": "1783000800.000100",
+    "user": "U03TOM",
+    "text": "We need SOC 2 Type II &lt;by Q3&gt;.",
+    "thread_ts": "1782918000.000200",
+    "parent_user_id": "U02MARIA"
+  },
+  {
+    "type": "message",
+    "subtype": "channel_topic",
+    "ts": "1783001000.000200",
+    "user": "U02MARIA",
+    "text": "set the channel topic: Acme pilot"
+  },
+  {
+    "type": "message",
+    "ts": "1783004400.000300",
+    "user": "U04PRIYA",
+    "text": "Pricing sheet for <@U02MARIA>, see <mailto:deals@yagni.example|deals@yagni.example>",
+    "files": [{ "id": "F01", "name": "pricing.pdf", "title": "Pricing" }],
+    "edited": { "user": "U04PRIYA", "ts": "1783004500.000000" }
+  },
+  {
+    "type": "message",
+    "ts": "1783005000.000400",
+    "user": "U05DEPLOY",
+    "text": "Nightly build green"
+  }
+]

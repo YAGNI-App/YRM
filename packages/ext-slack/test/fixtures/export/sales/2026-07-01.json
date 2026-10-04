@@ -1,0 +1,34 @@
+[
+  {
+    "type": "message",
+    "subtype": "channel_join",
+    "ts": "1782910000.000100",
+    "user": "U04PRIYA",
+    "text": "<@U04PRIYA> has joined the channel"
+  },
+  {
+    "type": "message",
+    "ts": "1782918000.000200",
+    "user": "U02MARIA",
+    "text": "Hi <@U01JACK>, the <https://acme.example/rfp|RFP> is up &amp; ready. Notes in <#C02RANDOM|random>.",
+    "thread_ts": "1782918000.000200",
+    "reply_count": 2,
+    "reactions": [{ "name": "eyes", "count": 2, "users": ["U01JACK", "U03TOM"] }]
+  },
+  {
+    "type": "message",
+    "ts": "1782918600.000300",
+    "user": "U01JACK",
+    "text": "Thanks <@U02MARIA>! Looping in <@U03TOM> for security.",
+    "thread_ts": "1782918000.000200",
+    "parent_user_id": "U02MARIA"
+  },
+  {
+    "type": "message",
+    "subtype": "bot_message",
+    "ts": "1782919000.000400",
+    "bot_id": "B01DEPLOY",
+    "username": "deploybot",
+    "text": "Deploy finished"
+  }
+]

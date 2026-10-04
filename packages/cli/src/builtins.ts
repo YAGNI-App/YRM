@@ -31,6 +31,7 @@ export const BUNDLED: Readonly<Record<string, () => Promise<unknown>>> = {
   "@yrm/ext-attention": () => import("@yrm/ext-attention"),
   "@yrm/ext-mcp": () => import("@yrm/ext-mcp"),
   "@yrm/ext-web": () => import("@yrm/ext-web"),
+  "@yrm/ext-slack": () => import("@yrm/ext-slack"),
   "@yrm/ext-gmail": () => import("@yrm/ext-gmail"),
 };
 

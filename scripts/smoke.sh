@@ -45,7 +45,7 @@ head -8 today.txt | grep -q "Marcus Bell" || fail "Marcus Bell is not near the t
 
 echo "== doctor"
 "$BIN" doctor >doctor.txt 2>&1 || { cat doctor.txt; fail "doctor failed"; }
-for ext in mail calendar notes resolve extract attention mcp web; do
+for ext in mail calendar notes resolve extract attention mcp web slack; do
   grep -Eq "^  $ext +built-in" doctor.txt || { cat doctor.txt; fail "built-in extension $ext is not loaded"; }
 done
 

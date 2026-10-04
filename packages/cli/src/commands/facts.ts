@@ -17,23 +17,32 @@ function origin(f: Fact): string {
 
 /**
  * One line per fact:
- *   statement  [type/predicate]  valid from..to  recorded at  conf  origin  ← eventId
- * Facts that are no longer believed show when they were retracted.
+ *   statement  [type/predicate]  valid from..to  [known on]  recorded at  conf  origin  ← eventId
+ * The known column appears only when some fact was known on a different day
+ * than it was recorded (imported history), and is blank on rows where the two
+ * agree. Facts that are no longer believed show when they were retracted.
  */
 export function formatFacts(facts: Fact[], opts: FactFormatOptions = {}): string[] {
   const s = opts.style ?? createStyle(false);
   if (facts.length === 0) return [`${opts.indent ?? ""}${s.dim("(no facts)")}`];
   const sorted = [...facts].sort((a, b) => (a.validFrom === b.validFrom ? a.recordedAt.localeCompare(b.recordedAt) : a.validFrom.localeCompare(b.validFrom)));
+  const known = (f: Fact): string =>
+    f.knownAt !== undefined && isoDate(f.knownAt) !== isoDate(f.recordedAt) ? isoDate(f.knownAt) : "";
+  const showKnown = sorted.some((f) => known(f) !== "");
   const rows = sorted.map((f) => {
     const valid = `${isoDate(f.validFrom)}..${f.validTo ? isoDate(f.validTo) : ""}`;
-    const recorded = f.retractedAt ? `${isoMinute(f.recordedAt)} (retracted ${isoMinute(f.retractedAt)})` : isoMinute(f.recordedAt);
+    // For imported history the retraction was known (the closing message arrived) long before it was recorded.
+    const unknown = f.knownUntil && f.retractedAt && isoDate(f.knownUntil) !== isoDate(f.retractedAt) ? `, known ${isoDate(f.knownUntil)}` : "";
+    const recorded = f.retractedAt ? `${isoMinute(f.recordedAt)} (retracted ${isoMinute(f.retractedAt)}${unknown})` : isoMinute(f.recordedAt);
     const events = f.provenance.map((p) => p.eventId).join(", ");
     const statement = f.retractedAt ? s.dim(`x ${f.statement}`) : f.statement;
-    return [statement, s.dim(`[${f.type}/${f.predicate}]`), valid, recorded, f.confidence.toFixed(2), origin(f), `← ${events}`];
+    const head = [statement, s.dim(`[${f.type}/${f.predicate}]`), valid];
+    const tail = [recorded, f.confidence.toFixed(2), origin(f), `← ${events}`];
+    return showKnown ? [...head, known(f), ...tail] : [...head, ...tail];
   });
   return table(rows, {
-    header: ["statement", "type/predicate", "valid", "recorded", "conf", "origin", "evidence"],
-    align: ["left", "left", "left", "left", "right", "left", "left"],
+    header: ["statement", "type/predicate", "valid", ...(showKnown ? ["known"] : []), "recorded", "conf", "origin", "evidence"],
+    align: ["left", "left", "left", ...(showKnown ? (["left"] as const) : []), "left", "right", "left", "left"],
     indent: opts.indent ?? "",
   });
 }
@@ -54,7 +63,7 @@ export function factsCommand(env: CliEnv): BuiltinCommand {
       "yrm facts <entity-id|query> [--kind person|organization] [--at <iso>] [--as-of <iso>] [--all]\n" +
       "  --kind   only match entities of this kind (to pick between a person and a company with the same name)\n" +
       "  --at     what was true in the world at this time (default now)\n" +
-      "  --as-of  what YRM believed at this time; also sets --at when --at is omitted\n" +
+      "  --as-of  what we knew at this time (for imported mail, by when it was received); also sets --at when --at is omitted\n" +
       "  --all    include retracted and superseded facts",
     needsHost: true,
     async run(ctx) {

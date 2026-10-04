@@ -24,7 +24,9 @@ export interface Store {
 
   /**
    * Record a fact. If `supersedes` is set, the superseded fact's retractedAt is
-   * set to the new fact's recordedAt. Applies the reconciliation rule: a model
+   * set to the new fact's recordedAt and its knownUntil to the new fact's
+   * knownAt (never earlier than its own). `knownAt` defaults to recordedAt and
+   * is clamped to it. Applies the reconciliation rule: a model
    * or rule fact may not supersede a human fact on the same subject+predicate.
    */
   recordFact<V>(fact: NewFact<V>): Promise<Fact<V>>;

@@ -1,0 +1,14 @@
+{
+  "name": "@yrm/core",
+  "version": "0.1.0",
+  "description": "YRM core: contracts, event log, bi-temporal facts, projections, extension host, model router.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts/index.ts"
+  },
+  "dependencies": {
+    "ulid": "^2.3.0"
+  }
+}

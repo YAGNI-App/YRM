@@ -254,7 +254,7 @@ describe("resolve:job-change", () => {
       }),
     ]);
     const { facts } = await host.extract(late!);
-    expect(facts).toHaveLength(1);
+    expect(facts.map((x) => x.predicate)).toEqual(["job_change", "works_at"]);
     const f = facts[0]!;
     const priya = await byEmail(store, PRIYA_ACME.address);
     expect(f).toMatchObject({
@@ -268,9 +268,78 @@ describe("resolve:job-change", () => {
     expect(f.provenance[0]?.quote).toStartWith("Today is my last day at Acme.");
     expect(f.recordedAt > f.validFrom).toBe(true);
 
-    // The old employer is untouched; ending it is someone else's call.
-    const acme = (await byDomain(store, "acme-robotics.example"))!;
-    expect(await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, predicate: "works_at", objectId: acme.id })).toHaveLength(1);
+    await host.close();
+  });
+
+  const LEAVING_TEXT =
+    "Jack,\n\nToday is my last day at Acme. I've accepted a role at Northwind Automation and start there on Monday the 17th.\n\nPriya";
+  const LEFT = "2026-08-15T00:02:45.000Z";
+  const leaving = () => message("leaving", LEFT, PRIYA_ACME, [JACK], { cc: [MARCUS], text: LEAVING_TEXT });
+  const employers = async (store: Store, personId: string, validAt: string) =>
+    (await store.queryFacts({ tenantId: TENANT, subjectId: personId, predicate: "works_at", validAt })).map((f) => f.object?.name);
+
+  it("ends the old works_at at the move and starts one at the organization joined", async () => {
+    const { host, store } = await setup();
+    const SAM = { name: "Sam Lindqvist", address: "sam@northwind.example" };
+    await ingestAndResolve(host, [BATCH[0]!, message("sam", "2026-07-20T15:30:00.000Z", JACK, [SAM])]);
+    const [late] = await ingestAndResolve(host, [leaving()]);
+    const { facts } = await host.extract(late!);
+    const priya = await byEmail(store, PRIYA_ACME.address);
+    const northwind = (await byDomain(store, "northwind.example"))!;
+
+    const [signal, edge] = facts;
+    expect(signal!.object).toEqual({ entityId: northwind.id, name: northwind.name });
+    expect(edge).toMatchObject({
+      type: "relationship",
+      predicate: "works_at",
+      subject: { entityId: priya.id },
+      object: { entityId: northwind.id },
+      validFrom: LEFT,
+      origin: { kind: "rule", by: "resolve" },
+    });
+    expect(edge!.provenance[0]!.eventId).toBe(late!.id);
+    expect(await employers(store, priya.id, "2026-08-01T00:00:00Z")).toEqual(["Acme Robotics"]);
+    expect(await employers(store, priya.id, "2026-08-20T00:00:00Z")).toEqual(["Northwind"]);
+    await host.close();
+  });
+
+  it("is idempotent: a second pass neither ends nor creates anything", async () => {
+    const { host, store } = await setup();
+    await ingestAndResolve(host, BATCH.slice(0, 1));
+    const [late] = await ingestAndResolve(host, [leaving()]);
+    await host.extract(late!);
+    const priya = await byEmail(store, PRIYA_ACME.address);
+    const snapshot = async () =>
+      (await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, predicate: "works_at", validAt: "2026-08-01T00:00:00Z" })).map(
+        (f) => [f.id, f.validTo],
+      );
+    const before = await snapshot();
+    expect(before).toHaveLength(1);
+
+    const { facts } = await host.extract(late!);
+    expect(facts.map((f) => f.predicate)).toEqual(["job_change"]);
+    expect(await snapshot()).toEqual(before);
+    expect(await employers(store, priya.id, "2026-09-01T00:00:00Z")).toEqual(["Northwind Automation"]);
+    // No organization by that name existed, so one is proposed, without a domain.
+    const [proposed] = await store.findEntities({ tenantId: TENANT, kind: "organization", nameLike: "Northwind Automation" });
+    expect(proposed).toMatchObject({ status: "proposed", identifiers: [] });
+    await host.close();
+  });
+
+  it("never ends a human-origin works_at", async () => {
+    const { host, store } = await setup();
+    await ingestAndResolve(host, BATCH.slice(0, 1));
+    const priya = await byEmail(store, PRIYA_ACME.address);
+    const [rule] = await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, predicate: "works_at" });
+    const human = await store.recordFact({
+      ...rule!,
+      origin: { kind: "human", by: "user:jack" },
+      confidence: 1,
+      supersedes: rule!.id,
+    });
+    const [late] = await ingestAndResolve(host, [leaving()]);
+    await host.extract(late!);
+    expect((await store.getFact(human.id))!.validTo).toBeUndefined();
     await host.close();
   });
 

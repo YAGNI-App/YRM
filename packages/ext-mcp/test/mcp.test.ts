@@ -518,13 +518,13 @@ describe("resources", () => {
 });
 
 describe("serve command", () => {
-  it("rejects --http as planned with exit code 2", async () => {
+  it("refuses --http on a non-loopback address without a token", async () => {
     const serve = host.registry.commands.get("serve") as Command;
     const err: string[] = [];
     const ctx: CommandContext = {
       tenantId: "local",
       args: [],
-      flags: { http: "8080" },
+      flags: { http: "0", host: "0.0.0.0" },
       store,
       models: host.models,
       stdout: () => {
@@ -534,6 +534,6 @@ describe("serve command", () => {
       log: silentLogger,
     };
     expect(await serve.run(ctx)).toBe(2);
-    expect(err.join("\n")).toContain("planned");
+    expect(err.join("\n")).toContain("will not listen on 0.0.0.0 without a token");
   });
 });

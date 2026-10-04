@@ -1,0 +1,25 @@
+{
+  "name": "yrm",
+  "private": true,
+  "version": "0.1.0",
+  "description": "YRM: an open context layer for relationships. Events are the truth; people, companies and deals are views.",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/YAGNI-App/YRM",
+  "homepage": "https://yrm.app",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "check": "bun run typecheck && bun test",
+    "yrm": "bun run packages/cli/src/main.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  }
+}

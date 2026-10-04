@@ -119,25 +119,39 @@ async function moveEmployer(
   value: JobChangeValue,
   event: SourceEvent,
   provenance: NewFact["provenance"],
-): Promise<{ joining?: Entity; worksAt?: NewFact }> {
+): Promise<{ joining?: Entity; worksAt?: NewFact; ended: NewFact[] }> {
   const at = event.occurredAt;
+  const ended: NewFact[] = [];
   const mine = { tenantId, subjectId: person.entityId, predicate: "works_at" };
   if (value.leaving) {
     for (const f of await store.queryFacts({ ...mine, validAt: at })) {
       if (f.origin.kind === "human" || f.validTo !== undefined || !f.object) continue;
       const org = await store.resolveEntity(f.object.entityId);
       if (!org || !namesOrganization(value.leaving, org)) continue;
-      await store.endFactValidity(f.id, at, RULE_ORIGIN.by);
+      // Ending a job is itself knowledge that arrived with this event, so it is
+      // returned as a superseding fact for the host to record (with the event's
+      // knownAt) rather than edited in place. "What did we know on Aug 20" then
+      // keeps the old edge until the farewell mail was actually received.
+      const { id, recordedAt, retractedAt, knownAt, knownUntil, ...rest } = f;
+      void id; void recordedAt; void retractedAt; void knownAt; void knownUntil;
+      ended.push({
+        ...rest,
+        validTo: at,
+        supersedes: f.id,
+        provenance: [...f.provenance, ...provenance],
+        origin: { ...RULE_ORIGIN },
+        confidence: Math.min(f.confidence, 0.8),
+      });
     }
   }
-  if (!value.joining) return {};
+  if (!value.joining) return { ended };
   const joining =
     (await findOrganization(store, tenantId, value.joining)) ??
     (await store.createEntity({ tenantId, kind: "organization", name: value.joining, identifiers: [], status: "proposed" }));
   const pair = { ...mine, objectId: joining.id };
-  if ((await store.queryFacts({ ...pair, validAt: at })).length > 0) return { joining };
+  if ((await store.queryFacts({ ...pair, validAt: at })).length > 0) return { joining, ended };
   const later = (await store.queryFacts(pair)).find((f) => f.validFrom > at);
-  if (later?.origin.kind === "human") return { joining };
+  if (later?.origin.kind === "human") return { joining, ended };
   const worksAt: NewFact = {
     type: "relationship",
     subject: person,
@@ -151,7 +165,7 @@ async function moveEmployer(
     origin: RULE_ORIGIN,
     ...(later ? { supersedes: later.id } : {}),
   };
-  return { joining, worksAt };
+  return { joining, worksAt, ended };
 }
 
 /**
@@ -190,7 +204,7 @@ export function jobChangeExtractor(store?: Store): Extractor {
           span: { start: parsed.quote.start, end: parsed.quote.end },
         },
       ];
-      const moved = store ? await moveEmployer(store, ctx.tenantId, subject, value, event, provenance) : {};
+      const moved = store ? await moveEmployer(store, ctx.tenantId, subject, value, event, provenance) : { ended: [] };
       const parts = [value.leaving && `leaving ${value.leaving}`, value.joining && `joining ${value.joining}`].filter(Boolean);
       const fact: NewFact<JobChangeValue> = {
         type: "signal",
@@ -205,7 +219,7 @@ export function jobChangeExtractor(store?: Store): Extractor {
         confidence: 0.7,
         origin: RULE_ORIGIN,
       };
-      return moved.worksAt ? [fact, moved.worksAt] : [fact];
+      return [fact, ...moved.ended, ...(moved.worksAt ? [moved.worksAt] : [])];
     },
   };
 }

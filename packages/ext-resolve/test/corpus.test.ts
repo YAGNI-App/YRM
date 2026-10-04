@@ -110,9 +110,14 @@ describe("Acme corpus", () => {
     const priya = people.find((p) => p.name === "Priya Raman")!;
     const northwind = orgs.find((o) => domainOf(o.id) === "northwind.example")!;
     const acme = orgs.find((o) => domainOf(o.id) === "acme-robotics.example")!;
-    expect(facts.map((f) => [f.predicate, f.subject.entityId, f.object?.entityId, f.validFrom])).toEqual([
-      ["job_change", priya.id, northwind.id, leaving.occurredAt],
-      ["works_at", priya.id, northwind.id, leaving.occurredAt],
+    const acmeEdge = (
+      await store.queryFacts({ tenantId: TENANT, subjectId: priya.id, predicate: "works_at", objectId: acme.id, includeRetracted: true })
+    ).find((f) => f.validTo === undefined)!;
+    // The Acme edge is ended by a superseding fact (same start, validTo at the move), not edited in place.
+    expect(facts.map((f) => [f.predicate, f.subject.entityId, f.object?.entityId, f.validFrom, f.validTo])).toEqual([
+      ["job_change", priya.id, northwind.id, leaving.occurredAt, undefined],
+      ["works_at", priya.id, acme.id, acmeEdge.validFrom, leaving.occurredAt],
+      ["works_at", priya.id, northwind.id, leaving.occurredAt, undefined],
     ]);
     expect(facts[0]!.value).toEqual({ leaving: "Acme", joining: "Northwind Automation" });
 

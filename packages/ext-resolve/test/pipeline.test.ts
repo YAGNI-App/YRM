@@ -254,7 +254,10 @@ describe("resolve:job-change", () => {
       }),
     ]);
     const { facts } = await host.extract(late!);
-    expect(facts.map((x) => x.predicate)).toEqual(["job_change", "works_at"]);
+    // The signal, the Acme edge ended as a superseding fact, and the Northwind edge.
+    expect(facts.map((x) => x.predicate)).toEqual(["job_change", "works_at", "works_at"]);
+    expect(facts[1]).toMatchObject({ validTo: "2026-08-15T00:02:45.000Z" });
+    expect(facts[1]!.supersedes).toBeDefined();
     const f = facts[0]!;
     const priya = await byEmail(store, PRIYA_ACME.address);
     expect(f).toMatchObject({
@@ -287,7 +290,7 @@ describe("resolve:job-change", () => {
     const priya = await byEmail(store, PRIYA_ACME.address);
     const northwind = (await byDomain(store, "northwind.example"))!;
 
-    const [signal, edge] = facts;
+    const [signal, , edge] = facts;
     expect(signal!.object).toEqual({ entityId: northwind.id, name: northwind.name });
     expect(edge).toMatchObject({
       type: "relationship",

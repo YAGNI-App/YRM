@@ -1,0 +1,14 @@
+{
+  "name": "@yrm/ext-gmail",
+  "version": "0.1.0",
+  "description": "YRM Gmail source: OAuth loopback login, incremental history sync, Takeout .mbox import.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*",
+    "@yrm/ext-mail": "workspace:*"
+  }
+}

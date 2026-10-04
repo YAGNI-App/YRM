@@ -49,6 +49,14 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/ext-gmail": {
+      "name": "@yrm/ext-gmail",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+        "@yrm/ext-mail": "workspace:*",
+      },
+    },
     "packages/ext-mail": {
       "name": "@yrm/ext-mail",
       "version": "0.1.0",
@@ -119,6 +127,8 @@
     "@yrm/ext-calendar": ["@yrm/ext-calendar@workspace:packages/ext-calendar"],
 
     "@yrm/ext-extract": ["@yrm/ext-extract@workspace:packages/ext-extract"],
+
+    "@yrm/ext-gmail": ["@yrm/ext-gmail@workspace:packages/ext-gmail"],
 
     "@yrm/ext-mail": ["@yrm/ext-mail@workspace:packages/ext-mail"],
 

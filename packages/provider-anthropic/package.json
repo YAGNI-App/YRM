@@ -1,0 +1,14 @@
+{
+  "name": "@yrm/provider-anthropic",
+  "version": "0.1.0",
+  "description": "YRM model provider for the Anthropic API.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@yrm/core": "workspace:*"
+  }
+}

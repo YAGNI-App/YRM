@@ -13,6 +13,7 @@ export const BUILTINS = [
   "@yrm/ext-attention",
   "@yrm/ext-mcp",
   "@yrm/ext-web",
+  "@yrm/ext-slack",
 ] as const;
 
 /** Which package provides each source the `import` command knows how to route to. */

@@ -1,0 +1,4 @@
+[
+  { "id": "C01SALES", "name": "sales", "members": ["U01JACK", "U02MARIA", "U03TOM", "U04PRIYA"] },
+  { "id": "C02RANDOM", "name": "random", "members": ["U01JACK", "U03TOM"] }
+]

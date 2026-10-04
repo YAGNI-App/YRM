@@ -87,6 +87,16 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/ext-slack": {
+      "name": "@yrm/ext-slack",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@yrm/ext-resolve": "workspace:*",
+      },
+    },
     "packages/ext-web": {
       "name": "@yrm/ext-web",
       "version": "0.1.0",
@@ -159,6 +169,8 @@
     "@yrm/ext-notes": ["@yrm/ext-notes@workspace:packages/ext-notes"],
 
     "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
+
+    "@yrm/ext-slack": ["@yrm/ext-slack@workspace:packages/ext-slack"],
 
     "@yrm/ext-web": ["@yrm/ext-web@workspace:packages/ext-web"],
 

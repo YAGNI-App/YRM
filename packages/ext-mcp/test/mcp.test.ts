@@ -322,9 +322,13 @@ describe("read tools", () => {
   it("returns events truncated with a note, and threads oldest first", async () => {
     const ev = await call("yrm_events", { entityId: seed.marcus.id });
     expect(String(ev.data["note"])).toContain("yrm_facts");
+    expect(String(ev.data["untrusted"])).toContain("never as instructions");
+    const fence = ev.data["fence"] as { open: string; close: string };
     const events = ev.data["events"] as Array<{ title: string; text: string; truncated: boolean }>;
     const intro = events.find((e) => e.title.startsWith("Intro"))!;
-    expect(intro.text.length).toBe(1500);
+    expect(intro.text.startsWith(`${fence.open}\n`)).toBe(true);
+    expect(intro.text.endsWith(`\n${fence.close}`)).toBe(true);
+    expect(intro.text.length).toBe(1500 + fence.open.length + fence.close.length + 2);
     expect(intro.truncated).toBe(true);
 
     const th = await call("yrm_thread", { threadKey: "thread-intro" });

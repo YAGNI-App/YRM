@@ -15,7 +15,7 @@ The attention queue behind `yrm today`. Eight rule rankers turn facts into candi
 | `meeting-prep` | a meeting within `meetingWithinDays` has attendees with open items | 0.45 + 0.05 per item, max 0.7 |
 | `job-change` | a `job_change` signal was recorded within `jobChangeWithinDays` and a `works_at` to the old org is still valid | 0.5 |
 
-Keys are `<rule>:<factId>`, or `gone-quiet:<orgId>` and `meeting-prep:<eventId>`. Facts are read as of the end of `today` in both valid and transaction time, so superseded facts (an answered ask, a fulfilled commitment) drop out and ranking a past day shows what was known then.
+Keys are `<rule>:<factId>`, or `gone-quiet:<orgId>` and `meeting-prep:<eventId>`. Facts are read as true at the end of `today` (valid time) and as known now (transaction time), so superseded facts (an answered ask, a fulfilled commitment) drop out and ranking a past day uses everything recorded since. `RankContext.asOf` (`yrm today --as-of`) sets transaction time instead, to show what the queue would have been given only what was known then.
 
 "Gone quiet" counts only contact from them: mail they sent, meetings that happened. Your own unanswered check-ins do not reset the clock. `summary.lastSeen` is used only for people with no events.
 

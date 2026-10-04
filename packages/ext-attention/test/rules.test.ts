@@ -270,6 +270,8 @@ describe("job-change", () => {
     await h.fact({ type: "relationship", predicate: "works_at", subject: ref(priya), object: ref(nw), value: {}, validFrom: "2026-08-17T00:00:00Z" });
     h.setClock("2026-09-03T12:00:00Z");
     const signal = await h.fact({ type: "signal", predicate: "job_change", subject: ref(priya), value: { leaving: ref(acme), joining: ref(nw) }, validFrom: "2026-08-14T00:00:00Z" });
+    // Back to the present: rankers read facts as known now, and the works_at facts were recorded on 10-01.
+    h.setClock("2026-10-03T12:00:00Z");
     return { h, signal, priya };
   }
 

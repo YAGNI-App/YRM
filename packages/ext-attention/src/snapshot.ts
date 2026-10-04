@@ -154,10 +154,11 @@ export function clamp01(x: number): number {
 const INBOUND_ROLES = new Set(["from", "author", "organizer", "sender"]);
 
 /**
- * Read-through cache over the store for one ranker invocation. Everything is
- * read "as of the end of today" in both valid and transaction time, so ranking
- * a past day shows what we knew then, and superseded facts (an answered ask, a
- * fulfilled commitment) drop out.
+ * Read-through cache over the store for one ranker invocation. Facts are read
+ * as true at the end of `today` (valid time), as known now or at `ctx.asOf`
+ * (transaction time). So ranking a past day uses everything learned since,
+ * unless the caller asks for the time-machine view with `asOf`. Superseded
+ * facts (an answered ask, a fulfilled commitment) drop out.
  */
 export class Snapshot {
   readonly today: string;
@@ -186,7 +187,8 @@ export class Snapshot {
         type,
         ...(predicate !== undefined ? { predicate } : {}),
         validAt: this.at,
-        asOf: this.at,
+        // What is known now (or at the caller's asOf), about the world at the end of `today`.
+        ...(this.ctx.asOf !== undefined ? { asOf: this.ctx.asOf } : {}),
       });
       this.factCache.set(key, hit);
     }

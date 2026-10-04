@@ -101,7 +101,8 @@ describe("CLI against a project extension", () => {
   test("--no-extract imports events only", async () => {
     const r = await cli(["import", "inbox", "--no-extract"], { cwd: dir });
     expect(r.code).toBe(0);
-    expect(r.stdout).toMatch(/facts recorded\s+skipped \(--no-extract\)/);
+    expect(r.stdout).toMatch(/facts recorded\s+0/);
+    expect(r.stdout).toMatch(/extraction\s+skipped \(--no-extract\)/);
   });
 
   test("today, who, facts, confirm, merge", async () => {

@@ -51,7 +51,8 @@ export function factsCommand(env: CliEnv): BuiltinCommand {
     name: "facts",
     description: "Show what YRM knows about an entity, at any point in world and record time",
     usage:
-      "yrm facts <entity-id|query> [--at <iso>] [--as-of <iso>] [--all]\n" +
+      "yrm facts <entity-id|query> [--kind person|organization] [--at <iso>] [--as-of <iso>] [--all]\n" +
+      "  --kind   only match entities of this kind (to pick between a person and a company with the same name)\n" +
       "  --at     what was true in the world at this time (default now)\n" +
       "  --as-of  what YRM believed at this time; also sets --at when --at is omitted\n" +
       "  --all    include retracted and superseded facts",
@@ -60,16 +61,18 @@ export function factsCommand(env: CliEnv): BuiltinCommand {
       const { host } = booted(env);
       const query = ctx.args.join(" ");
       if (!query) {
-        ctx.stderr("usage: yrm facts <entity-id|query> [--at <iso>] [--as-of <iso>] [--all]");
+        ctx.stderr("usage: yrm facts <entity-id|query> [--kind person|organization] [--at <iso>] [--as-of <iso>] [--all]");
         return 1;
       }
-      const found = await findEntities(host, query);
+      const kind = flagString(ctx.flags, "kind");
+      const found = (await findEntities(host, query)).filter((e) => kind === undefined || e.kind === kind);
+      const what = kind === undefined ? "entity" : kind;
       if (found.length === 0) {
-        ctx.stderr(`no entity matches "${query}"`);
+        ctx.stderr(`no ${what} matches "${query}"`);
         return 1;
       }
       if (found.length > 1) {
-        ctx.stderr(`"${query}" matches ${found.length} entities; pass an id:`);
+        ctx.stderr(`"${query}" matches ${found.length} entities; pass an id${kind === undefined ? " or --kind" : ""}:`);
         for (const e of found) ctx.stderr(`  ${e.id}  ${e.kind}  ${e.name}`);
         return 1;
       }

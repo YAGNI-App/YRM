@@ -49,18 +49,77 @@ export function formatEntity(e: Entity, style: Style = createStyle(false)): stri
   return lines;
 }
 
+function statusTag(e: Entity, style: Style): string {
+  const color = e.status === "confirmed" ? style.green : style.yellow;
+  return `[${color(e.status)}]`;
+}
+
+function oneLine(e: Entity, style: Style): string {
+  const ids = e.identifiers.filter((i) => i.type === "email" || i.type === "domain").map((i) => i.value);
+  return [style.bold(e.name), statusTag(e, style), ids.join(", "), style.dim(e.id)].filter(Boolean).join("  ");
+}
+
+const byName = (a: Entity, b: Entity) => a.name.localeCompare(b.name);
+
+/**
+ * Every live entity (not rejected, not merged away), grouped: organizations
+ * with the people who currently work there, then people with no current
+ * organization, then any other kinds.
+ */
+export async function listAll(host: Host, style: Style = createStyle(false)): Promise<string[]> {
+  const tenantId = host.config.tenant.id;
+  const live = (await host.store.findEntities({ tenantId, status: ["proposed", "confirmed"] })).sort(byName);
+  if (live.length === 0) return ["no entities yet; run `yrm import <path>`"];
+  const byId = new Map(live.map((e) => [e.id, e]));
+  const orgs = live.filter((e) => e.kind === "organization");
+  const people = live.filter((e) => e.kind === "person");
+  const others = live.filter((e) => e.kind !== "organization" && e.kind !== "person");
+
+  const staff = new Map<string, Entity[]>();
+  const placed = new Set<string>();
+  for (const f of await host.store.queryFacts({ tenantId, predicate: "works_at" })) {
+    const person = byId.get(f.subject.entityId);
+    const org = f.object ? byId.get(f.object.entityId) : undefined;
+    if (!person || !org || person.kind !== "person" || org.kind !== "organization") continue;
+    const list = staff.get(org.id) ?? [];
+    if (!list.some((p) => p.id === person.id)) list.push(person);
+    staff.set(org.id, list);
+    placed.add(person.id);
+  }
+
+  const lines: string[] = [];
+  lines.push(style.bold(`organizations (${orgs.length})`));
+  for (const org of orgs) {
+    lines.push(`  ${oneLine(org, style)}`);
+    for (const p of (staff.get(org.id) ?? []).sort(byName)) lines.push(`    ${oneLine(p, style)}`);
+  }
+  const loose = people.filter((p) => !placed.has(p.id));
+  if (loose.length > 0) {
+    lines.push("", style.bold(`people with no current organization (${loose.length})`));
+    for (const p of loose) lines.push(`  ${oneLine(p, style)}`);
+  }
+  const kinds = [...new Set(others.map((e) => e.kind))].sort();
+  for (const kind of kinds) {
+    const of = others.filter((e) => e.kind === kind);
+    lines.push("", style.bold(`${kind} (${of.length})`));
+    for (const e of of) lines.push(`  ${oneLine(e, style)}`);
+  }
+  lines.push("", style.dim(`${people.length} people, ${orgs.length} organizations${others.length ? `, ${others.length} other` : ""}`));
+  return lines;
+}
+
 export function whoCommand(env: CliEnv): BuiltinCommand {
   return {
     name: "who",
-    description: "Find people, organizations and deals by name, address or domain",
-    usage: "yrm who <query> [--facts]",
+    description: "Find people, organizations and deals by name, address or domain; with no query, list everyone",
+    usage: "yrm who [<query>] [--facts] [--all]\n  with no query (or --all): every entity, people under their organization",
     needsHost: true,
     async run(ctx) {
       const { host } = booted(env);
       const query = ctx.args.join(" ");
-      if (!query) {
-        ctx.stderr("usage: yrm who <query> [--facts]");
-        return 1;
+      if (!query || ctx.flags["all"] === true) {
+        for (const line of await listAll(host, env.style)) ctx.stdout(line);
+        return 0;
       }
       const found = await findEntities(host, query);
       if (found.length === 0) {

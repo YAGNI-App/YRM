@@ -1,0 +1,42 @@
+// Config for the Acme demo tenant. From this directory:
+//   bun run ../../packages/cli/src/main.ts import .
+//   bun run ../../packages/cli/src/main.ts today --date 2026-10-03
+// Matches the `tenant` block in ground-truth.json. Everything here is fictional.
+import { defineConfig } from "@yrm/core";
+
+export default defineConfig({
+  tenant: {
+    id: "local",
+    name: "YAGNI",
+    // Jack is the tenant's user. Dana shares the domain, so selfDomains marks her as "us" too.
+    selfAddresses: ["jack@yagni.example"],
+    selfDomains: ["yagni.example"],
+    timezone: "America/Denver",
+  },
+
+  // Relative to this file. fixtures/acme/.yrm/ is gitignored.
+  storage: { driver: "sqlite", path: ".yrm/local/yrm.sqlite" },
+
+  // The same routes `yrm init` writes. With no local model and no API keys the
+  // demo still runs on rule-based extraction.
+  models: {
+    routes: {
+      triage: [{ provider: "openai-compatible", model: "qwen3:8b" }],
+      extract: [{ provider: "openai-compatible", model: "qwen3:8b" }],
+      synthesize: [{ provider: "anthropic", model: "claude-opus-5" }],
+    },
+  },
+
+  providers: {
+    "openai-compatible": { baseUrl: "http://localhost:11434/v1" },
+    anthropic: { apiKeyEnv: "ANTHROPIC_API_KEY" },
+  },
+
+  settings: {
+    resolve: {
+      // The corpus's stand-in for gmail.com: an address there says nothing about employment.
+      freemailDomains: ["mailhub.example"],
+      selfOrgName: "YAGNI",
+    },
+  },
+});

@@ -8,7 +8,7 @@ Every company, person, address, phone number and URL in this directory is invent
 
 ## `acme/`
 
-The demo corpus. Jack, the tenant (`jack@yagni.example`), sells a pilot to Acme Robotics between 2026-06-01 and 2026-10-03. `yrm import fixtures/acme && yrm today` should tell the story in `acme/STORY.md`.
+The demo corpus. Jack, the tenant (`jack@yagni.example`), sells a pilot to Acme Robotics between 2026-06-01 and 2026-10-03. From `fixtures/acme`, `yrm import .` then `yrm today --date 2026-10-03` should tell the story in `acme/STORY.md` (see the README's "Try it" for the exact commands).
 
 ```
 acme/
@@ -17,6 +17,7 @@ acme/
   calendar/acme.ics   4 meetings (one cancelled)
   notes/*.md          3 call notes by Jack, with frontmatter date and attendees
   ground-truth.json   what a correct pipeline should produce
+  yrm.config.ts       the demo tenant: self addresses and domain, mailhub.example as freemail; store in .yrm/ (gitignored)
   validate.test.ts    structural checks on all of the above; runs in CI
 ```
 

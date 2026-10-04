@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { extname, join, resolve } from "node:path";
+import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import type { Host, SourceEvent } from "@yrm/core";
 import { SOURCE_PACKAGES } from "../builtins.ts";
 import { booted, type BuiltinCommand, type CliEnv } from "../env.ts";
@@ -62,13 +62,17 @@ function isDir(p: string): boolean {
 }
 
 export interface ImportSummary {
-  steps: Array<ImportStep & { created: number; duplicates: number; dropped: number }>;
+  steps: Array<ImportStep & { created: number; duplicates: number; dropped: number; skipped: number }>;
   events: number;
   duplicates: number;
   dropped: number;
+  skipped: number;
   resolved: number;
   entitiesProposed: number;
+  /** Facts recorded by resolvers and extractors during this import. */
   facts: number;
+  /** Of those, how many replace an earlier fact (an ask answered, a commitment kept). */
+  factsSuperseding: number;
   extractSkipped: number;
   ms: number;
 }
@@ -89,18 +93,21 @@ export async function importAndProcess(host: Host, steps: ImportStep[], opts: { 
     events: 0,
     duplicates: 0,
     dropped: 0,
+    skipped: 0,
     resolved: 0,
     entitiesProposed: 0,
     facts: 0,
+    factsSuperseding: 0,
     extractSkipped: 0,
     ms: 0,
   };
   const created: SourceEvent[] = [];
   for (const step of steps) {
     const r = await host.importPath(step.source, step.path);
-    summary.steps.push({ ...step, created: r.events.length, duplicates: r.duplicates, dropped: r.dropped });
+    summary.steps.push({ ...step, created: r.events.length, duplicates: r.duplicates, dropped: r.dropped, skipped: r.skipped });
     summary.duplicates += r.duplicates;
     summary.dropped += r.dropped;
+    summary.skipped += r.skipped;
     created.push(...r.events);
   }
   summary.events = created.length;
@@ -111,6 +118,9 @@ export async function importAndProcess(host: Host, steps: ImportStep[], opts: { 
   for (const e of created) {
     const r = await host.resolve(e);
     summary.resolved += r.assigned;
+    // Resolvers record facts too (works_at, same-person signals); they count as recorded.
+    summary.facts += r.facts.length;
+    summary.factsSuperseding += r.facts.filter((f) => f.supersedes !== undefined).length;
     for (const ent of r.entities) touched.add(ent.id);
     resolved.push(r.event);
   }
@@ -119,6 +129,7 @@ export async function importAndProcess(host: Host, steps: ImportStep[], opts: { 
       const r = await host.extract(e);
       if (r.skipped) summary.extractSkipped++;
       summary.facts += r.facts.length;
+      summary.factsSuperseding += r.facts.filter((f) => f.supersedes !== undefined).length;
       for (const f of r.facts) {
         touched.add(f.subject.entityId);
         if (f.object) touched.add(f.object.entityId);
@@ -132,9 +143,17 @@ export async function importAndProcess(host: Host, steps: ImportStep[], opts: { 
   return summary;
 }
 
-export function formatImportSummary(s: ImportSummary, opts: { extract: boolean }): string[] {
-  const rows = s.steps.map((st) => [st.source, st.path, String(st.created), String(st.duplicates), String(st.dropped)]);
-  const lines = table(rows, { header: ["source", "path", "created", "dup", "dropped"], align: ["left", "left", "right", "right", "right"] });
+export function formatImportSummary(s: ImportSummary, opts: { extract: boolean; cwd?: string }): string[] {
+  const shown = (p: string): string => {
+    if (opts.cwd === undefined) return p;
+    const rel = relative(opts.cwd, p);
+    return rel === "" ? "." : rel.startsWith("..") || isAbsolute(rel) ? p : rel;
+  };
+  const rows = s.steps.map((st) => [st.source, shown(st.path), String(st.created), String(st.duplicates), String(st.dropped), String(st.skipped)]);
+  const lines = table(rows, {
+    header: ["source", "path", "created", "dup", "dropped", "skipped"],
+    align: ["left", "left", "right", "right", "right", "right"],
+  });
   lines.push("");
   lines.push(
     ...table(
@@ -142,9 +161,12 @@ export function formatImportSummary(s: ImportSummary, opts: { extract: boolean }
         ["events created", String(s.events)],
         ["duplicates", String(s.duplicates)],
         ["dropped", String(s.dropped)],
+        ...(s.skipped > 0 ? [["skipped", String(s.skipped)]] : []),
         ["participants resolved", String(s.resolved)],
         ["entities proposed", String(s.entitiesProposed)],
-        ["facts recorded", opts.extract ? String(s.facts) : "skipped (--no-extract)"],
+        ["facts recorded", String(s.facts)],
+        ...(s.factsSuperseding > 0 ? [["  superseding earlier facts", String(s.factsSuperseding)]] : []),
+        ...(opts.extract ? [] : [["extraction", "skipped (--no-extract)"]]),
         ["time", ms(s.ms)],
       ],
       { align: ["left", "right"] },
@@ -192,7 +214,7 @@ export function importCommand(env: CliEnv): BuiltinCommand {
       }
 
       const summary = await importAndProcess(host, runnable, { extract });
-      for (const line of formatImportSummary(summary, { extract })) ctx.stdout(line);
+      for (const line of formatImportSummary(summary, { extract, cwd: env.cwd })) ctx.stdout(line);
       return missing.length > 0 ? 1 : 0;
     },
   };

@@ -16,6 +16,13 @@
         "ulid": "^2.3.0",
       },
     },
+    "packages/ext-attention": {
+      "name": "@yrm/ext-attention",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/ext-calendar": {
       "name": "@yrm/ext-calendar",
       "version": "0.1.0",
@@ -85,6 +92,8 @@
     "@types/node": ["@types/node@26.6.4", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg=="],
 
     "@yrm/core": ["@yrm/core@workspace:packages/core"],
+
+    "@yrm/ext-attention": ["@yrm/ext-attention@workspace:packages/ext-attention"],
 
     "@yrm/ext-calendar": ["@yrm/ext-calendar@workspace:packages/ext-calendar"],
 

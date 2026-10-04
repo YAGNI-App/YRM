@@ -91,7 +91,7 @@ export interface Host extends stages.HostContext {
   run(sourceName?: string, opts?: stages.StageOptions & { today?: string }): Promise<stages.RunSummary>;
   ingest(source: SourceAdapter | string, opts?: stages.StageOptions): Promise<stages.IngestResult>;
   importPath(source: SourceAdapter | string, path: string, opts?: stages.StageOptions): Promise<stages.IngestResult>;
-  resolve(event: SourceEvent): Promise<stages.ResolveResult>;
+  resolve(event: SourceEvent, opts?: stages.StageOptions): Promise<stages.ResolveResult>;
   extract(event: SourceEvent, opts?: stages.StageOptions): Promise<stages.ExtractResult>;
   project(entityIds: Iterable<string>): Promise<Entity[]>;
   rank(today?: string, opts?: stages.RankOptions): Promise<QueueItem[]>;
@@ -140,7 +140,7 @@ export function createHost(config: YrmConfig, deps: HostDeps): Host {
     run: (sourceName, opts) => stages.run(ctx, sourceName, opts),
     ingest: (source, opts) => stages.ingest(ctx, source, opts),
     importPath: (source, path, opts) => stages.importPath(ctx, source, path, opts),
-    resolve: (event) => stages.resolve(ctx, event),
+    resolve: (event, opts) => stages.resolve(ctx, event, opts),
     extract: (event, opts) => stages.extract(ctx, event, opts),
     project: (ids) => stages.project(ctx, ids),
     rank: (today, opts) => stages.rank(ctx, today, opts),

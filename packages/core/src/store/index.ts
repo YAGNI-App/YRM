@@ -3,7 +3,7 @@ import { ConfigError } from "../errors.ts";
 import { SqliteStore } from "./sqlite.ts";
 
 export { SqliteStore, DEFAULT_TENANT, HUMAN_OUTRANKED_CONFIDENCE_CAP } from "./sqlite.ts";
-export type { SqliteStoreOptions, ModelCallRecord } from "./sqlite.ts";
+export type { SqliteStoreOptions, StoredModelCall } from "./sqlite.ts";
 export { MIGRATIONS } from "./schema.ts";
 export type { Migration } from "./schema.ts";
 

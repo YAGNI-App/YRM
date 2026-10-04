@@ -37,7 +37,7 @@ export interface SqliteStoreOptions {
 }
 
 /** One model invocation, as the router records it. */
-export interface ModelCallRecord {
+export interface StoredModelCall {
   /** Assigned by the store when omitted. */
   id?: string;
   tenantId: string;
@@ -982,7 +982,7 @@ export class SqliteStore implements Store {
   // ---- model usage (SQLite-specific; for the router) ------------------------
 
   /** Record one model call. Returns its id. */
-  async recordModelCall(call: ModelCallRecord): Promise<string> {
+  async recordModelCall(call: StoredModelCall): Promise<string> {
     const id = call.id ?? newId();
     this.db.run(
       `INSERT INTO model_calls (id, tenant_id, tier, provider, model, input_tokens, output_tokens,

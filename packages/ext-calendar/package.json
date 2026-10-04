@@ -1,0 +1,13 @@
+{
+  "name": "@yrm/ext-calendar",
+  "version": "0.1.0",
+  "description": "YRM source extension: meetings from iCalendar (.ics) files.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  }
+}

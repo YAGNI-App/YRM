@@ -16,3 +16,32 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test
+
+  # The Store conformance suite against a real Postgres server. `check` already
+  # runs it in process on PGlite; this catches anything PGlite hides
+  # (connection pooling, concurrent writers on separate connections, locale).
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: yrm
+          POSTGRES_PASSWORD: yrm
+          POSTGRES_DB: yrm_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U yrm -d yrm_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      YRM_TEST_POSTGRES_URL: postgres://yrm:yrm@localhost:5432/yrm_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun test packages/store-postgres

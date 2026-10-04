@@ -33,6 +33,7 @@ Tests must not need network or API keys. Mock providers through the `ModelProvid
 ```
 packages/core            @yrm/core      contracts, store (sqlite), extension host, router, pipeline
 packages/cli             @yrm/cli       the `yrm` command
+packages/store-postgres  @yrm/store-postgres  Postgres Store (loaded by createStore for driver "postgres")
 packages/provider-*      @yrm/provider-*  model providers (anthropic, openai-compatible)
 packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, mcp)
 fixtures/                synthetic corpora with ground-truth facts, used by tests and demos

@@ -19,6 +19,6 @@
       "@yrm/*": ["packages/*/src/index.ts"]
     }
   },
-  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "fixtures/**/*.test.ts", "yrm.config.ts"],
+  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "fixtures/**/*.test.ts", "yrm.config.ts", "yrm.config.example.ts"],
   "exclude": ["node_modules", "dist"]
 }

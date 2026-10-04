@@ -17,6 +17,16 @@
       },
       "dependencies": {
         "@yrm/core": "workspace:*",
+        "@yrm/ext-attention": "workspace:*",
+        "@yrm/ext-calendar": "workspace:*",
+        "@yrm/ext-extract": "workspace:*",
+        "@yrm/ext-gmail": "workspace:*",
+        "@yrm/ext-mail": "workspace:*",
+        "@yrm/ext-mcp": "workspace:*",
+        "@yrm/ext-notes": "workspace:*",
+        "@yrm/ext-resolve": "workspace:*",
+        "@yrm/ext-slack": "workspace:*",
+        "@yrm/ext-web": "workspace:*",
         "@yrm/provider-anthropic": "workspace:*",
         "@yrm/provider-openai": "workspace:*",
       },
@@ -85,6 +95,16 @@
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
+      },
+    },
+    "packages/ext-slack": {
+      "name": "@yrm/ext-slack",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@yrm/ext-resolve": "workspace:*",
       },
     },
     "packages/ext-views": {
@@ -166,6 +186,8 @@
     "@yrm/ext-notes": ["@yrm/ext-notes@workspace:packages/ext-notes"],
 
     "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
+
+    "@yrm/ext-slack": ["@yrm/ext-slack@workspace:packages/ext-slack"],
 
     "@yrm/ext-views": ["@yrm/ext-views@workspace:packages/ext-views"],
 

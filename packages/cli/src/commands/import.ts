@@ -83,7 +83,10 @@ export interface ImportSummary {
  * equivalent. Extraction runs in world-time order across sources so later
  * events can supersede earlier facts.
  */
-export async function importAndProcess(host: Host, steps: ImportStep[], opts: { extract: boolean }): Promise<ImportSummary> {
+export async function importAndProcess(host: Host, steps: ImportStep[], opts: { extract: boolean; live?: boolean }): Promise<ImportSummary> {
+  // History is known from when each event was received; `--live` treats the
+  // import as arriving now instead (ADR 0008).
+  const stage = { live: opts.live === true };
   const t0 = performance.now();
   const tenantId = host.config.tenant.id;
   const entitiesBefore = (await host.store.findEntities({ tenantId })).length;
@@ -116,7 +119,7 @@ export async function importAndProcess(host: Host, steps: ImportStep[], opts: { 
   const touched = new Set<string>();
   const resolved: SourceEvent[] = [];
   for (const e of created) {
-    const r = await host.resolve(e);
+    const r = await host.resolve(e, stage);
     summary.resolved += r.assigned;
     // Resolvers record facts too (works_at, same-person signals); they count as recorded.
     summary.facts += r.facts.length;
@@ -126,7 +129,7 @@ export async function importAndProcess(host: Host, steps: ImportStep[], opts: { 
   }
   if (opts.extract) {
     for (const e of resolved) {
-      const r = await host.extract(e);
+      const r = await host.extract(e, stage);
       if (r.skipped) summary.extractSkipped++;
       summary.facts += r.facts.length;
       summary.factsSuperseding += r.facts.filter((f) => f.supersedes !== undefined).length;
@@ -179,12 +182,15 @@ export function importCommand(env: CliEnv): BuiltinCommand {
   return {
     name: "import",
     description: "Import files or directories (.eml, .mbox, .ics, .md) and process them",
-    usage: "yrm import <path...> [--no-extract]",
+    usage:
+      "yrm import <path...> [--no-extract] [--live]\n" +
+      "  --no-extract  import events and resolve people, but record no extracted facts\n" +
+      "  --live        treat the files as arriving now: facts are known from now, not from when each message was received",
     needsHost: true,
     async run(ctx) {
       const { host } = booted(env);
       if (ctx.args.length === 0) {
-        ctx.stderr("usage: yrm import <path...> [--no-extract]");
+        ctx.stderr("usage: yrm import <path...> [--no-extract] [--live]");
         return 1;
       }
       const steps: ImportStep[] = [];
@@ -213,7 +219,7 @@ export function importCommand(env: CliEnv): BuiltinCommand {
         ctx.stderr("note: no resolvers registered (install @yrm/ext-resolve); participants stay unlinked");
       }
 
-      const summary = await importAndProcess(host, runnable, { extract });
+      const summary = await importAndProcess(host, runnable, { extract, live: ctx.flags["live"] === true });
       for (const line of formatImportSummary(summary, { extract, cwd: env.cwd })) ctx.stdout(line);
       return missing.length > 0 ? 1 : 0;
     },

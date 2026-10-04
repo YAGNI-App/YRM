@@ -111,8 +111,54 @@ describe("yrm import fixtures/acme", () => {
     expect(actions[1]).toContain("Type II");
     expect(r.stdout).toContain("Re-engage Acme Robotics");
 
+    // Imported after Oct 3, but every message was received by then (ADR 0008).
     const then = await cli(["today", "--date", "2026-10-03", "--as-of", "2026-10-03"], { cwd: dir, builtins: BUILTINS });
-    expect(then.stdout).toContain("Nothing needs you today.");
+    expect(then.out.filter((l) => /^\s*\d+\. /.test(l))).toEqual(actions);
+  });
+
+  it("today --as-of a past day hides what was not yet known", async () => {
+    const r = await cli(["today", "--date", "2026-10-03", "--as-of", "2026-08-20"], { cwd: dir, builtins: BUILTINS });
+    expect(r.code).toBe(0);
+    // Marcus asked on Sept 2 and the Type II promise was made on Aug 26.
+    expect(r.stdout).not.toContain("Reply to Marcus Bell");
+    expect(r.stdout).not.toContain("Deliver to Elena Vasquez");
+    expect(r.stdout).toMatch(/^\s*\d+\. /m);
+  });
+});
+
+describe("the time machine on imported history (ADR 0008)", () => {
+  const priya = (): string =>
+    (
+      db
+        .query("SELECT entity_id AS id FROM entity_identifiers WHERE value = 'priya.raman@acme-robotics.example'")
+        .get() as { id: string }
+    ).id;
+  const facts = (...flags: string[]) => cli(["facts", priya(), ...flags], { cwd: dir, builtins: BUILTINS });
+  const JOB_CHANGE = "Priya Raman is changing jobs";
+
+  it("records when facts were known, not when they were imported", () => {
+    const row = db
+      .query(
+        "SELECT known_at, recorded_at FROM facts WHERE predicate = 'job_change' AND subject_name = 'Priya Raman' AND value_json LIKE '%Northwind%'",
+      )
+      .get() as { known_at: string; recorded_at: string };
+    // Sent Aug 14, held by Acme's DLP gateway, received Sept 3.
+    expect(row.known_at.slice(0, 10)).toBe("2026-09-03");
+    expect(row.recorded_at > row.known_at).toBe(true);
+  });
+
+  it("on Aug 20 we knew Priya at Acme and nothing of her job change", async () => {
+    const r = await facts("--at", "2026-08-20", "--as-of", "2026-08-20");
+    expect(r.code).toBe(0);
+    expect(r.stdout).toContain("Priya Raman works at Acme Robotics.");
+    expect(r.stdout).not.toContain(JOB_CHANGE);
+    expect(r.stdout).toMatch(/^statement .* known /m);
+  });
+
+  it("by Sept 4 we knew she had left in August", async () => {
+    expect((await facts("--as-of", "2026-09-04")).stdout).toContain(JOB_CHANGE);
+    const back = await facts("--at", "2026-08-20", "--as-of", "2026-09-05");
+    expect(back.stdout).toMatch(new RegExp(`${JOB_CHANGE}.*2026-08-1[45]\\.\\.\\s+2026-09-03`));
   });
 
   it("fills rule views on import and says why model views are empty", async () => {

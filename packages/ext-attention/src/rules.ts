@@ -276,8 +276,9 @@ export const jobChange: Rule = async (snap) => {
   const worksAt = await snap.facts("relationship", "works_at");
   const out: QueueItem[] = [];
   for (const signal of await snap.facts("signal", "job_change")) {
-    // Transaction time on purpose: what matters is when we learned it.
-    const learned = localDate(signal.recordedAt, snap.tz);
+    // Knowledge time on purpose: what matters is when we learned it, which
+    // for imported mail is when it arrived, not when YRM indexed it.
+    const learned = localDate(signal.knownAt ?? signal.recordedAt, snap.tz);
     const ago = daysBetween(learned, snap.today);
     if (ago < 0 || ago > snap.settings.jobChangeWithinDays) continue;
     const value = typeof signal.value === "object" && signal.value !== null ? (signal.value as Record<string, unknown>) : {};
@@ -297,7 +298,7 @@ export const jobChange: Rule = async (snap) => {
     out.push(
       item("job-change", signal.id, {
         action: `Update ${name}'s organization and find a new contact at ${org}`,
-        reason: `A job change for ${name} was recorded on ${learned}${joining ? ` (now at ${await snap.name(joining)})` : ""}, but ${name} is still recorded as working at ${org}.`,
+        reason: `A job change for ${name} was learned on ${learned}${joining ? ` (now at ${await snap.name(joining)})` : ""}, but ${name} is still recorded as working at ${org}.`,
         score: 0.5,
         about: await snap.about(person, stale.object),
         facts: [signal, stale],

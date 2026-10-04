@@ -13,7 +13,8 @@ SourceEvent  ──(resolve)──▶  Participant.entityId ──▶ Entity (pr
      │
      └──(extract)──▶  Fact { type, subject, predicate, value,
                               validFrom..validTo,        world time
-                              recordedAt..retractedAt,   belief time
+                              knownAt..knownUntil,       belief time (ADR 0008)
+                              recordedAt..retractedAt,   when the row was written
                               provenance[eventId, speaker, quote, span],
                               origin{human|model|rule, by, version},
                               supersedes }
@@ -24,9 +25,9 @@ SourceEvent  ──(resolve)──▶  Participant.entityId ──▶ Entity (pr
 
 **Events** are immutable and idempotent on `(tenant, source, externalId)`. Ingesters strip quoted text and signatures so `content.text` is only what is new. The stripped text is kept for provenance spans.
 
-**Facts** are edges. Four timestamps: `validFrom`/`validTo` say when it was true in the world; `recordedAt`/`retractedAt` say when we believed it. A champion who changed jobs in June that we learned about in August has `validTo: June`, `retractedAt: August` on the old `works_at` fact. Queries take `validAt` and `asOf` so an agent can ask what was true, and what we knew, at any point.
+**Facts** are edges. `validFrom`/`validTo` say when it was true in the world; `knownAt`/`knownUntil` say when we knew it; `recordedAt`/`retractedAt` say when YRM wrote and closed the row. For live data the last two pairs agree. For imported history `knownAt` comes from the event (when the message was received), so a mailbox imported in October still remembers what was known in June ([ADR 0008](decisions/0008-known-at-for-backfilled-facts.md)). A champion who changed jobs in June that we learned about in August has `validTo: June`, `knownUntil: August` on the old `works_at` fact. Queries take `validAt` and `asOf` (knowledge time) so an agent can ask what was true, and what we knew, at any point.
 
-Facts are never edited. A new fact `supersedes` an old one and the store closes the old one's transaction time. **Reconciliation rule:** a `human` origin outranks `model` and `rule` origins on the same subject and predicate, and a human override is never superseded by a model re-deriving the old value. The store enforces this.
+Facts are never edited. A new fact `supersedes` an old one and the store closes the old one's transaction and knowledge time. **Reconciliation rule:** a `human` origin outranks `model` and `rule` origins on the same subject and predicate, and a human override is never superseded by a model re-deriving the old value. The store enforces this.
 
 **Commitments, asks, decisions and objections are fact types**, not notes. A commitment has parties, a due date, a status and, when resolved, the event that resolved it. This is the "decision trace" idea applied to relationships.
 

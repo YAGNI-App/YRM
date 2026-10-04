@@ -1,0 +1,16 @@
+{
+  "name": "@yrm/ext-slack",
+  "version": "0.1.0",
+  "description": "YRM Slack source: channels, DMs and threads through the Web API, or a workspace export.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@yrm/ext-resolve": "workspace:*"
+  }
+}

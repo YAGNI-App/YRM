@@ -105,6 +105,30 @@ describe("CLI against a project extension", () => {
     expect(r.stdout).toMatch(/extraction\s+skipped \(--no-extract\)/);
   });
 
+  test("import knows facts from the message date; --live knows them from now", async () => {
+    await cli(["import", "inbox"], { cwd: dir });
+    const who = await cli(["who", "priya"], { cwd: dir });
+    const priyaId = who.stdout.match(ULID)![0];
+    const june = await cli(["facts", priyaId, "--as-of", "2026-06-03"], { cwd: dir });
+    expect(june.stdout).toContain("Priya Raman committed: I will send the pick data by June 23.");
+    expect(june.stdout).toMatch(/\s2026-06-02\s/);
+
+    const { dir: liveDir, cleanup: liveCleanup } = tempDir();
+    try {
+      writeConfig(liveDir);
+      writeExtension(liveDir, "fake", FAKE);
+      mkdirSync(join(liveDir, "inbox"));
+      writeFileSync(join(liveDir, "inbox", "a.eml"), "");
+      expect((await cli(["import", "inbox", "--live"], { cwd: liveDir })).code).toBe(0);
+      const liveId = (await cli(["who", "priya"], { cwd: liveDir })).stdout.match(ULID)![0];
+      const before = await cli(["facts", liveId, "--as-of", "2026-06-03"], { cwd: liveDir });
+      expect(before.stdout).toContain("(no facts)");
+      expect((await cli(["facts", liveId, "--at", "2026-06-03"], { cwd: liveDir })).stdout).toContain("committed");
+    } finally {
+      liveCleanup();
+    }
+  });
+
   test("today, who, facts, confirm, merge", async () => {
     await cli(["import", "inbox"], { cwd: dir });
 

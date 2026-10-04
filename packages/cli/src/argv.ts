@@ -28,6 +28,7 @@ export const BOOLEAN_FLAGS: ReadonlySet<string> = new Set([
   "version",
   "mcp",
   "dry-run",
+  "live",
 ]);
 
 export function parseArgv(argv: readonly string[], booleans: ReadonlySet<string> = BOOLEAN_FLAGS): ParsedArgs {

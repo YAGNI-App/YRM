@@ -98,6 +98,26 @@ describe("formatFacts", () => {
     expect(old.indexOf("[attribute/works_at]")).toBe(current.indexOf("[attribute/works_at]"));
   });
 
+  test("adds a known column only when a fact was known on another day than recorded", () => {
+    const imported = formatFacts([
+      fact({ id: "f2", statement: "Priya is changing jobs", validFrom: "2026-08-14T00:00:00.000Z", recordedAt: "2026-10-04T12:00:00.000Z", knownAt: "2026-09-03T09:00:00.000Z" }),
+      fact({ recordedAt: "2026-10-04T12:00:00.000Z", knownAt: "2026-10-04T12:00:00.000Z" }),
+    ]);
+    expect(imported[0]).toMatch(/^statement\s+type\/predicate\s+valid\s+known\s+recorded\s+conf/);
+    const [same, earlier] = [imported[2]!, imported[3]!];
+    expect(earlier).toMatch(/2026-08-14\.\.\s+2026-09-03\s+2026-10-04 12:00/);
+    // Blank where knowledge and record time agree.
+    expect(same).toMatch(/2026-06-01\.\.\s+2026-10-04 12:00/);
+
+    const superseded = formatFacts([
+      fact({ recordedAt: "2026-10-04T12:00:00.000Z", knownAt: "2026-06-01T00:00:00.000Z", retractedAt: "2026-10-04T12:00:01.000Z", knownUntil: "2026-09-03T09:00:00.000Z" }),
+    ]);
+    expect(superseded[2]).toContain("(retracted 2026-10-04 12:00, known 2026-09-03)");
+
+    const live = formatFacts([fact({ knownAt: "2026-06-02T15:04:00.000Z" })]);
+    expect(live[0]).not.toContain("known");
+  });
+
   test("no facts", () => {
     expect(formatFacts([])).toEqual(["(no facts)"]);
   });

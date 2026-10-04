@@ -16,6 +16,8 @@ function fact(over: Partial<FactView>): FactView {
     validTo: null,
     recordedAt: "2026-10-01T00:00:00.000Z",
     retractedAt: null,
+    knownAt: "2026-10-01T00:00:00.000Z",
+    knownUntil: null,
     confidence: 0.8,
     origin: { kind: "model", by: "views", model: "qwen3:8b", version: "1" },
     supersedes: null,

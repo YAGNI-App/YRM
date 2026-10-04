@@ -1,0 +1,62 @@
+# Example: YRM with its data in a named volume, and an optional Postgres.
+#
+#   docker compose up -d                                  # SQLite in the yrm-data volume
+#   docker compose run --rm -v ~/mail:/import:ro yrm import /import
+#   docker compose --profile postgres up -d               # also start Postgres
+#
+# The dashboard is published on 127.0.0.1 only: it has no authentication in
+# 0.1, so anyone who can reach the port can read and change your data. Once
+# auth (#33) lands, binding beyond loopback will require a token.
+
+services:
+  yrm:
+    image: ghcr.io/yagni-app/yrm:latest
+    # Or build from this checkout:
+    # build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7777:7777" # yrm web
+      # - "127.0.0.1:7788:7788" # yrm serve --http, once MCP over HTTP ships
+    volumes:
+      - yrm-data:/data
+    environment:
+      TZ: America/Denver
+      # Used by the first-start `yrm init` only; edit /data/yrm.config.ts afterwards.
+      YRM_SELF: you@example.com
+      YRM_NAME: You
+      # Bring your own key for hosted tiers; leave unset to stay local/rule-only.
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Gmail (packages/ext-gmail/README.md): your own Google Cloud client.
+      # YRM_GOOGLE_CLIENT_SECRET: ${YRM_GOOGLE_CLIENT_SECRET}
+      # Read by the commented storage block below.
+      # YRM_DATABASE_URL: postgres://yrm:yrm@postgres:5432/yrm
+    # A local model on the Docker host (Ollama on :11434) is reachable as
+    # http://host.docker.internal:11434/v1; set that as
+    # providers["openai-compatible"].baseUrl in /data/yrm.config.ts.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # The Postgres store is in progress (#20); until it merges YRM uses SQLite
+  # in /data and this service is unused. When it lands, start this profile and
+  # point storage at it in /data/yrm.config.ts:
+  #
+  #   storage: { driver: "postgres", url: process.env.YRM_DATABASE_URL },
+  postgres:
+    image: postgres:16
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yrm
+      POSTGRES_PASSWORD: yrm
+      POSTGRES_DB: yrm
+    volumes:
+      - yrm-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yrm -d yrm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  yrm-data:
+  yrm-postgres:

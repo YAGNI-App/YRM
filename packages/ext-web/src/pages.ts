@@ -220,7 +220,7 @@ ${viewsSection(v, page)}
 ${page.people.length ? html`<section><h2>People</h2><ul class="chips">${page.people.map((p) => html`<li>${entityLink(p.id, p.name, t)} ${statusChip(p.status)}</li>`)}</ul></section>` : ""}
 <section>
   <h2>Facts <span class="muted small">${tm.engaged ? `true at ${tm.validDate ? fmtDay(tm.validDate, v.tz) : "now"}, as known by ${tm.asOfDate ? fmtDay(tm.asOfDate, v.tz) : "now"}` : "oldest first"}</span></h2>
-  ${notYet > 0 ? html`<p class="legend"><span class="swatch not-yet"></span> ${plural(notYet, "fact was", "facts were")} true then but not yet known: YRM recorded ${notYet === 1 ? "it" : "them"} later.</p>` : ""}
+  ${notYet > 0 ? html`<p class="legend"><span class="swatch not-yet"></span> ${plural(notYet, "fact was", "facts were")} true then but not yet known: we learned ${notYet === 1 ? "it" : "them"} later.</p>` : ""}
   ${page.facts.length === 0 ? html`<p class="empty">No facts ${tm.engaged ? "for this moment" : "yet"}. Facts come from extraction over this ${e.kind}'s mail, notes and meetings.</p>` : html`<ol class="timeline">${page.facts.map((f) => factRow(f, v, { showSubject: false, travel: t }))}</ol>`}
   ${hiddenNote}
 </section>

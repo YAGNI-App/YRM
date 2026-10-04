@@ -447,3 +447,70 @@ describe("transport security", () => {
     expect(js.headers.get("content-type")).toContain("javascript");
   });
 });
+
+describe("known by on imported history (ADR 0008)", () => {
+  it("compares Known by against knownAt, not the import time", async () => {
+    const saved = clock;
+    clock = new Date("2026-10-04T12:00:00.000Z");
+    try {
+      const priya = await store.createEntity({
+        kind: "person",
+        name: "Priya Raman",
+        identifiers: [{ type: "email", value: "priya.raman@acme-robotics.example", confidence: 1, source: "resolve" }],
+        status: "proposed",
+      });
+      const { event: farewell } = await store.appendEvent({
+        source: "mail",
+        kind: "message",
+        externalId: "<farewell@acme>",
+        occurredAt: "2026-08-14T17:00:00.000Z",
+        participants: [{ role: "from", address: "priya.raman@acme-robotics.example", name: "Priya Raman", entityId: priya.id }],
+        content: { title: "Leaving Acme", text: "Today is my last day at Acme." },
+        meta: { receivedAt: "2026-09-03T09:00:00.000Z" },
+      });
+      const change = await store.recordFact({
+        type: "signal",
+        subject: { entityId: priya.id, name: "Priya Raman" },
+        predicate: "job_change",
+        value: { leaving: "Acme" },
+        statement: "Priya Raman is changing jobs: leaving Acme.",
+        validFrom: farewell.occurredAt,
+        knownAt: "2026-09-03T09:00:00.000Z",
+        provenance: [{ eventId: farewell.id }],
+        confidence: 0.7,
+        origin: { kind: "rule", by: "resolve", version: "1" },
+      });
+
+      const aug = await get(`/entity/${priya.id}?validAt=2026-08-20&asOf=2026-08-20`);
+      expect(factBlock(aug.body, change.id)).toContain("state-not-yet-known");
+      const sep = await get(`/entity/${priya.id}?validAt=2026-08-20&asOf=2026-09-05`);
+      const row = factBlock(sep.body, change.id);
+      expect(row).toContain("state-current");
+      expect(row).toMatch(/known <time datetime="2026-09-03T09:00:00.000Z">Sep 3, 2026/);
+      expect(row).toMatch(/recorded <time [^>]+>Oct 4, 2026/);
+
+      const api = (await (await fetch(`${base}/api/entity/${priya.id}?asOf=2026-09-05`)).json()) as {
+        facts: Array<{ id: string; knownAt: string; recordedAt: string }>;
+      };
+      const json = api.facts.find((f) => f.id === change.id)!;
+      expect(json.knownAt).toBe("2026-09-03T09:00:00.000Z");
+      expect(json.recordedAt).toBe("2026-10-04T12:00:00.000Z");
+    } finally {
+      clock = saved;
+    }
+  });
+
+  it("a fact superseded in knowledge time reads as superseded from then", () => {
+    const tm = (asOf: string): TimeMachine => ({ validAt: asOf, asOf, validDate: null, asOfDate: null, engaged: true });
+    const old = {
+      ...seed.oldTitle,
+      recordedAt: "2026-10-04T12:00:00.000Z",
+      knownAt: "2026-06-02T15:00:00.000Z",
+      retractedAt: "2026-10-04T12:00:01.000Z",
+      knownUntil: "2026-09-03T09:00:00.000Z",
+    } as Fact;
+    const nowIso = "2026-10-04T13:00:00.000Z";
+    expect(classify(old, tm("2026-08-20T00:00:00.000Z"), nowIso)).toBe("current");
+    expect(classify(old, tm("2026-09-05T00:00:00.000Z"), nowIso)).toBe("retracted");
+  });
+});

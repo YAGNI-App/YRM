@@ -1,0 +1,39 @@
+{
+  "name": "@yrm/pi",
+  "version": "0.1.0",
+  "description": "pi package for YRM: relationship facts with provenance as pi tools, a /yrm command, a skill and a morning-brief prompt.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "yrm",
+    "crm",
+    "mcp"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./extension": "./extensions/yrm.ts"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/yrm.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts/*.md"
+    ]
+  },
+  "dependencies": {
+    "@yrm/cli": "workspace:*",
+    "@yrm/core": "workspace:*",
+    "@yrm/ext-mcp": "workspace:*"
+  },
+  "peerDependencies": {
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "typebox": "^1.3.27"
+  }
+}

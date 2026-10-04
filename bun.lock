@@ -49,6 +49,14 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/ext-gmail": {
+      "name": "@yrm/ext-gmail",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+        "@yrm/ext-mail": "workspace:*",
+      },
+    },
     "packages/ext-mail": {
       "name": "@yrm/ext-mail",
       "version": "0.1.0",
@@ -77,6 +85,21 @@
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
+      },
+    },
+    "packages/pi": {
+      "name": "@yrm/pi",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/cli": "workspace:*",
+        "@yrm/core": "workspace:*",
+        "@yrm/ext-mcp": "workspace:*",
+      },
+      "devDependencies": {
+        "typebox": "^1.3.27",
+      },
+      "peerDependencies": {
+        "typebox": "*",
       },
     },
     "packages/provider-anthropic": {
@@ -120,6 +143,8 @@
 
     "@yrm/ext-extract": ["@yrm/ext-extract@workspace:packages/ext-extract"],
 
+    "@yrm/ext-gmail": ["@yrm/ext-gmail@workspace:packages/ext-gmail"],
+
     "@yrm/ext-mail": ["@yrm/ext-mail@workspace:packages/ext-mail"],
 
     "@yrm/ext-mcp": ["@yrm/ext-mcp@workspace:packages/ext-mcp"],
@@ -127,6 +152,8 @@
     "@yrm/ext-notes": ["@yrm/ext-notes@workspace:packages/ext-notes"],
 
     "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
+
+    "@yrm/pi": ["@yrm/pi@workspace:packages/pi"],
 
     "@yrm/provider-anthropic": ["@yrm/provider-anthropic@workspace:packages/provider-anthropic"],
 
@@ -307,6 +334,8 @@
     "ts-algebra": ["ts-algebra@2.0.0", "", {}, "sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw=="],
 
     "type-is": ["type-is@2.1.0", "", { "dependencies": { "content-type": "^2.0.0", "media-typer": "^1.1.0", "mime-types": "^3.0.0" } }, "sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA=="],
+
+    "typebox": ["typebox@1.3.34", "", {}, "sha512-wbnzrXXDW8xEFHDZZs2jo1MkhaYlKAY4FRhpBc1+2LF1fZVBGCXGdLEhA/Z/NBbgzJMFfeM8m7elKPa/+KxaUQ=="],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

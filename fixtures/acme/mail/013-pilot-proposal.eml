@@ -1,0 +1,30 @@
+Message-ID: <202606261203.proposal@yagni.example>
+Date: Fri, 26 Jun 2026 12:03:55 -0400
+From: Jack Collins <jack@yagni.example>
+To: Priya Raman <priya.raman@acme-robotics.example>, Marcus Bell <marcus.bell@acme-robotics.example>
+Cc: Tom Fischer <tom.fischer@acme-robotics.example>, Dana Okafor <dana@yagni.example>
+Subject: YAGNI pilot proposal for Acme Robotics
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Priya, Marcus,
+
+Attached is the pilot proposal, built on the Reno data Priya shared. Headline: on those two weeks, our simulator releases work 9 minutes earlier on average per wave and keeps AMRs busy 17% more of the shift.
+
+Two options:
+
+Option A: one site. Reno only, 8 weeks, up to 40 pickers on both shifts. Flat $18,000, credited against year one. Success metric: picks per labor hour vs. the June baseline, measured by Tom's team, not ours.
+
+Option B: three sites. Reno, Columbus and Allentown in parallel, 10 weeks. $45,000. Faster path to a full rollout decision, but three network reviews and three change windows.
+
+My honest recommendation is Option A. It proves the thing that matters with the least disruption, and Columbus and Allentown can follow in weeks rather than months if Reno works.
+
+Either option needs a security review on your side before the agent goes on the floor network. Dana has our standard package ready.
+
+Jack
+
+-- 
+Jack Collins
+Founder, YAGNI
++1 646 555 0142 | yagni.example

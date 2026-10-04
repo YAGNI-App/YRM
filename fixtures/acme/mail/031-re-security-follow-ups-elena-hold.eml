@@ -1,0 +1,47 @@
+Message-ID: <202608281140.hold@acme-robotics.example>
+Date: Fri, 28 Aug 2026 11:40:18 -0700
+From: Elena Vasquez <elena.vasquez@acme-robotics.example>
+To: Jack Collins <jack@yagni.example>
+Cc: Marcus Bell <marcus.bell@acme-robotics.example>, Dana Okafor <dana@yagni.example>
+Subject: Re: Security review follow-ups
+In-Reply-To: <202608271015.secfollowups@yagni.example>
+References: <202608271015.secfollowups@yagni.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Jack,
+
+That's an accurate summary, with one correction I want on the record. We are not approving the pilot conditionally. The Reno pilot is on hold until I have the Type II report in hand and have reviewed it; that includes the test VLAN. I'm not able to grant a change freeze exception for a vendor without Type II.
+
+I know this pushes your start date. It is the same standard we hold every vendor on that segment to, including the AMR fleet vendor.
+
+Elena
+
+-- 
+Elena Vasquez
+Head of Information Security
+Acme Robotics
+
+On Thu, 27 Aug 2026 at 10:15, Jack Collins <jack@yagni.example> wrote:
+> Elena, Marcus,
+>
+> Thank you both for yesterday's session. My understanding of where we landed:
+>
+> Agreed:
+> - The agent's data flows, proxy setup and on-site storage are acceptable for a pilot, subject to the documents below.
+> - The open item is SOC 2 Type II. Acme policy requires it for software on a segment adjacent to production, and our Type I does not satisfy that.
+>
+> Follow-ups:
+> - Dana will send the subprocessor list and the agent data-flow diagram by September 4.
+> - I will send you our SOC 2 Type II report by September 30. Our observation window closes that day and our auditor has committed to a fast turnaround.
+> - Tom will reschedule the test VLAN install once Elena confirms the change freeze exception.
+>
+> If the Type II report lands as planned, we could start the pilot in mid-October instead of August 24. Not ideal, but I'd rather start clean.
+>
+> Jack
+>
+> -- 
+> Jack Collins
+> Founder, YAGNI
+> +1 646 555 0142 | yagni.example

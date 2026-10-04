@@ -1,0 +1,25 @@
+Message-ID: <CAF7tq9.20260619.agentnet@mailhub.example>
+Date: Fri, 19 Jun 2026 21:47:03 -0700
+From: Tom Fischer <tfischer@mailhub.example>
+To: Jack Collins <jack@yagni.example>
+Subject: Edge agent network requirements
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Hi Jack,
+
+Writing from my personal account because corporate mail is stripping external attachments this week (security is rolling out a new gateway) and I wanted to send you our VLAN diagram tonight. It's attached.
+
+Two questions before I take this to our network team:
+
+1. Does the YAGNI edge agent need outbound internet access from the DC floor network, or can it run fully on-prem and sync through a proxy?
+2. What does it need from Fulcrum in terms of API rate limits? Our Fulcrum instance throttles at 50 requests/second per client and we already have the AMR fleet manager using most of that.
+
+Thanks,
+Tom
+
+-- 
+Tom Fischer
+Senior Operations Engineer, Acme Robotics
++1 775 555 0133

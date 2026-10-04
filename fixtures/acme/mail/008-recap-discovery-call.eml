@@ -1,0 +1,32 @@
+Message-ID: <202606170920.recap@yagni.example>
+Date: Wed, 17 Jun 2026 09:20:15 -0400
+From: Jack Collins <jack@yagni.example>
+To: Priya Raman <priya.raman@acme-robotics.example>, Marcus Bell <marcus.bell@acme-robotics.example>
+Cc: Tom Fischer <tom.fischer@acme-robotics.example>
+Subject: Recap: YAGNI x Acme discovery call + next steps
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Priya, Marcus, Tom,
+
+Thanks for the time yesterday. A short recap so we're all working from the same list.
+
+What we heard:
+- Reno releases waves on a fixed 30-minute cadence, and the AMR fleet idles 20-25% of the shift waiting for pickers to catch up.
+- Columbus and Allentown run the same Fulcrum build but different shift patterns, so Reno is the cleanest place to prove anything.
+- Success for Acme means picks per labor hour, not robot utilisation.
+
+Next steps:
+- Priya will share two weeks of anonymised pick data from Reno by June 23 so we can baseline.
+- I'll send a written pilot proposal with two scoping options by June 26.
+- Tom and our solutions engineer Dana will compare notes on network requirements for the edge agent.
+
+If I've missed anything, reply here and I'll fold it into the proposal.
+
+Jack
+
+-- 
+Jack Collins
+Founder, YAGNI
++1 646 555 0142 | yagni.example

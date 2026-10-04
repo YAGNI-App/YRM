@@ -1,0 +1,31 @@
+Message-ID: <202608271015.secfollowups@yagni.example>
+Date: Thu, 27 Aug 2026 10:15:00 -0400
+From: Jack Collins <jack@yagni.example>
+To: Elena Vasquez <elena.vasquez@acme-robotics.example>, Marcus Bell <marcus.bell@acme-robotics.example>
+Cc: Dana Okafor <dana@yagni.example>, Tom Fischer <tom.fischer@acme-robotics.example>
+Subject: Security review follow-ups
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Elena, Marcus,
+
+Thank you both for yesterday's session. My understanding of where we landed:
+
+Agreed:
+- The agent's data flows, proxy setup and on-site storage are acceptable for a pilot, subject to the documents below.
+- The open item is SOC 2 Type II. Acme policy requires it for software on a segment adjacent to production, and our Type I does not satisfy that.
+
+Follow-ups:
+- Dana will send the subprocessor list and the agent data-flow diagram by September 4.
+- I will send you our SOC 2 Type II report by September 30. Our observation window closes that day and our auditor has committed to a fast turnaround.
+- Tom will reschedule the test VLAN install once Elena confirms the change freeze exception.
+
+If the Type II report lands as planned, we could start the pilot in mid-October instead of August 24. Not ideal, but I'd rather start clean.
+
+Jack
+
+-- 
+Jack Collins
+Founder, YAGNI
++1 646 555 0142 | yagni.example

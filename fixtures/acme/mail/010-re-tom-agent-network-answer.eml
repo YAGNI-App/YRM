@@ -1,0 +1,43 @@
+Message-ID: <202606201115.agentnet-reply@yagni.example>
+Date: Sat, 20 Jun 2026 11:15:40 -0400
+From: Jack Collins <jack@yagni.example>
+To: Tom Fischer <tfischer@mailhub.example>
+Cc: Tom Fischer <tom.fischer@acme-robotics.example>, Dana Okafor <dana@yagni.example>
+Subject: Re: Edge agent network requirements
+In-Reply-To: <CAF7tq9.20260619.agentnet@mailhub.example>
+References: <CAF7tq9.20260619.agentnet@mailhub.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Tom, thanks for the diagram. Copying your work address so this lands in the right place, and Dana, who'll own the technical side of any pilot.
+
+1. Outbound: the agent needs one outbound HTTPS connection to our control plane (a single hostname, port 443). It works fine through an authenticated proxy. Order and labor data stay on the agent; only aggregate metrics leave the building.
+2. Fulcrum: we subscribe to the event stream rather than polling, so steady-state load is under 5 requests/second. The initial backfill is throttled to 10/second and runs overnight.
+
+Dana can walk your network team through it whenever suits.
+
+Jack
+
+-- 
+Jack Collins
+Founder, YAGNI
++1 646 555 0142 | yagni.example
+
+On Fri, 19 Jun 2026 at 21:47, Tom Fischer <tfischer@mailhub.example> wrote:
+> Hi Jack,
+>
+> Writing from my personal account because corporate mail is stripping external attachments this week (security is rolling out a new gateway) and I wanted to send you our VLAN diagram tonight. It's attached.
+>
+> Two questions before I take this to our network team:
+>
+> 1. Does the YAGNI edge agent need outbound internet access from the DC floor network, or can it run fully on-prem and sync through a proxy?
+> 2. What does it need from Fulcrum in terms of API rate limits? Our Fulcrum instance throttles at 50 requests/second per client and we already have the AMR fleet manager using most of that.
+>
+> Thanks,
+> Tom
+>
+> -- 
+> Tom Fischer
+> Senior Operations Engineer, Acme Robotics
+> +1 775 555 0133

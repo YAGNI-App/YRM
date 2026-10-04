@@ -20,6 +20,8 @@ import {
   type WebDeps,
 } from "./data.ts";
 import type { Html } from "./html.ts";
+import appJs from "./static/app.js" with { type: "text" };
+import stylesCss from "./static/styles.css" with { type: "text" };
 import { entityView, eventView, factsView, messagePage, orgsView, peopleView, threadView, todayView } from "./pages.ts";
 import {
   CSRF_COOKIE,
@@ -46,9 +48,11 @@ export interface WebApp {
   rankCache: RankCache;
 }
 
-const STATIC: Record<string, { file: string; type: string }> = {
-  "/static/styles.css": { file: "./static/styles.css", type: "text/css; charset=utf-8" },
-  "/static/app.js": { file: "./static/app.js", type: "text/javascript; charset=utf-8" },
+// Imported as text so `bun build --compile` embeds them; a runtime file read
+// relative to import.meta.url finds nothing inside a compiled binary.
+const STATIC: Record<string, { body: string; type: string }> = {
+  "/static/styles.css": { body: stylesCss, type: "text/css; charset=utf-8" },
+  "/static/app.js": { body: appJs, type: "text/javascript; charset=utf-8" },
 };
 
 class HttpError extends Error {
@@ -69,17 +73,11 @@ interface Req {
 export function createWebApp(deps: WebDeps, opts: WebAppOptions = {}): WebApp {
   const loopbackOnly = opts.loopbackOnly ?? true;
   const rankCache = new RankCache();
-  const staticCache = new Map<string, string>();
 
   async function staticFile(path: string): Promise<Response | null> {
     const entry = STATIC[path];
     if (!entry) return null;
-    let body = staticCache.get(path);
-    if (body === undefined) {
-      body = await Bun.file(new URL(entry.file, import.meta.url)).text();
-      staticCache.set(path, body);
-    }
-    return new Response(body, { headers: { "content-type": entry.type, "cache-control": "no-cache" } });
+    return new Response(entry.body, { headers: { "content-type": entry.type, "cache-control": "no-cache" } });
   }
 
   function view(r: Req): View {

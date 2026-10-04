@@ -1,10 +1,9 @@
-import { ConfigError, systemTimezone } from "@yrm/core";
+import { ConfigError, systemTimezone, type TenantConfig } from "@yrm/core";
 
 /**
- * Settings live under `settings.attention` in yrm.config.ts. `RankContext`
- * does not carry the tenant config, so the tenant's own addresses and domains
- * arrive here too: the CLI copies `tenant.selfAddresses`, `tenant.selfDomains`
- * and `tenant.timezone` into these keys.
+ * Settings live under `settings.attention` in yrm.config.ts. Who "you" are and
+ * the timezone come from the tenant block (`yrm.config.tenant`); the same keys
+ * here override it.
  */
 export interface AttentionSettings {
   /** The tenant's own addresses. Their person entities are "you". */
@@ -68,9 +67,19 @@ function stringList(key: string, v: unknown, lower: boolean): string[] {
   return v.map((s: string) => (lower ? s.trim().toLowerCase() : s.trim())).filter((s) => s.length > 0);
 }
 
-/** Validate and fill defaults. Throws ConfigError on a wrong type rather than guessing. */
-export function readSettings(raw: Record<string, unknown> | undefined): AttentionSettings {
-  const s: AttentionSettings = { ...DEFAULT_SETTINGS, selfAddresses: [], selfDomains: [], disable: [] };
+/**
+ * Validate and fill defaults. Throws ConfigError on a wrong type rather than guessing.
+ * `selfAddresses`, `selfDomains` and `timezone` default to the tenant block;
+ * keys under `settings.attention` override them.
+ */
+export function readSettings(raw: Record<string, unknown> | undefined, tenant?: Readonly<TenantConfig>): AttentionSettings {
+  const s: AttentionSettings = {
+    ...DEFAULT_SETTINGS,
+    selfAddresses: (tenant?.selfAddresses ?? []).map((a) => a.trim().toLowerCase()),
+    selfDomains: (tenant?.selfDomains ?? []).map((d) => d.trim().toLowerCase()),
+    disable: [],
+  };
+  if (tenant?.timezone !== undefined) s.timezone = tenant.timezone;
   if (raw === undefined) return s;
   if (raw.selfAddresses !== undefined) s.selfAddresses = stringList("selfAddresses", raw.selfAddresses, true);
   if (raw.selfDomains !== undefined) s.selfDomains = stringList("selfDomains", raw.selfDomains, true);

@@ -2,6 +2,7 @@ import type { NewSourceEvent, SourceEvent } from "./events.ts";
 import type { Fact, NewFact } from "./facts.ts";
 import type { Entity } from "./entities.ts";
 import type { Store } from "./store.ts";
+import type { TenantConfig } from "./config.ts";
 import type { CompletionRequest, CompletionResponse, ModelProvider, ModelRouter } from "./models.ts";
 
 /**
@@ -35,6 +36,14 @@ export interface ExtensionModule {
 
 // ---- registrations ----------------------------------------------------------
 
+/** Counts a source reports about items it read but did not emit. */
+export interface SyncStats {
+  /** Items deliberately not emitted: bulk mail, notifications, filtered noise. */
+  dropped?: number;
+  /** Items that could not be read or were out of scope (unparseable files, unsupported kinds). */
+  skipped?: number;
+}
+
 export interface SyncContext {
   tenantId: string;
   /** Last cursor this source stored, or null on first sync. */
@@ -43,6 +52,11 @@ export interface SyncContext {
   emit(events: NewSourceEvent[]): Promise<SourceEvent[]>;
   /** Persist progress. Called by the source whenever it is safe to resume from here. */
   setCursor(cursor: string): Promise<void>;
+  /**
+   * Optional: report what the source filtered before `emit`, so hosts can show
+   * it. Counts add up across calls. Hosts that do not implement it leave it unset.
+   */
+  report?(stats: SyncStats): void;
   signal: AbortSignal;
   log: Logger;
 }
@@ -242,9 +256,15 @@ export interface Logger {
 }
 
 export interface ConfigReader {
-  /** Extension-scoped config from yrm.config.ts `extensions[name]`. */
+  /** Extension-scoped config from yrm.config.ts `settings[name]`. */
   get<T = unknown>(key?: string): T | undefined;
   tenantId: string;
+  /**
+   * The tenant block from yrm.config.ts: self addresses and domains, name,
+   * timezone. Extensions read who "you" are from here rather than asking the
+   * user to repeat it under `settings`.
+   */
+  tenant: Readonly<TenantConfig>;
 }
 
 export interface ExtensionAPI {

@@ -26,9 +26,8 @@ export { listSuggestions, suggestionKey, type MergeSuggestion } from "./names.ts
 export type { ResolveSettings } from "./settings.ts";
 
 /**
- * Note on hooks: entities created here are not announced through
- * `entity:proposed`. Resolvers receive no hook bus, and the host does not fire
- * that hook itself yet.
+ * Entities the header resolver creates are announced by the host through
+ * `entity:proposed`; nothing here fires it.
  */
 export default function resolve(yrm: ExtensionAPI): void {
   const settings = readSettings(yrm.config);

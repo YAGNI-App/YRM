@@ -62,6 +62,7 @@ export interface ExtensionApiDeps {
 export function createConfigReader(config: YrmConfig, extension: string): ConfigReader {
   return {
     tenantId: config.tenant.id,
+    tenant: config.tenant,
     get<T = unknown>(key?: string): T | undefined {
       const scoped = config.settings?.[extension];
       if (scoped === undefined) return undefined;

@@ -21,13 +21,13 @@ Keys are `<rule>:<factId>`, or `gone-quiet:<orgId>` and `meeting-prep:<eventId>`
 
 ## Settings
 
-`settings.attention` in `yrm.config.ts`. `RankContext` does not carry the tenant config, so the host copies the tenant's identity in here.
+`settings.attention` in `yrm.config.ts`. Who "you" are and the timezone come from the tenant block (`yrm.config.tenant`); setting the same keys here overrides it.
 
 | Key | Default | Notes |
 |---|---|---|
-| `selfAddresses` | `[]` | Your addresses. Their person entities are "you". |
-| `selfDomains` | `[]` | Used only if no address matches: people at these domains are "you". Organizations at these domains never go quiet. |
-| `timezone` | system | Turns instants into calendar days. |
+| `selfAddresses` | `tenant.selfAddresses` | Your addresses. Their person entities are "you". |
+| `selfDomains` | `tenant.selfDomains` | Used only if no address matches: people at these domains are "you". Organizations at these domains never go quiet. |
+| `timezone` | `tenant.timezone`, else system | Turns instants into calendar days. |
 | `askMinDays` | 2 | |
 | `dueSoonDays` | 3 | |
 | `brokenWithinDays` | 14 | |

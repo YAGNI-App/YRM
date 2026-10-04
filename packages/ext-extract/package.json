@@ -1,0 +1,13 @@
+{
+  "name": "@yrm/ext-extract",
+  "version": "0.1.0",
+  "description": "YRM fact extraction: a free rule extractor, model triage and model extraction with provenance.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  }
+}

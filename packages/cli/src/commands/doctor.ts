@@ -89,12 +89,23 @@ export async function probeEndpoint(baseUrl: string, fetchImpl: FetchLike, timeo
 
 function storageLine(boot: Booted): string {
   const { storage } = boot.config;
-  if (storage.driver !== "sqlite") return `${storage.driver} ${storage.url ?? storage.path ?? ""}`;
+  if (storage.driver !== "sqlite") return `${storage.driver} ${redactUrl(storage.url ?? storage.path ?? "")}`;
   const path = storage.path ?? "";
   if (path === ":memory:") return "sqlite (in memory)";
   let size = 0;
   for (const p of [path, `${path}-wal`]) if (existsSync(p)) size += statSync(p).size;
   return `sqlite ${path} (${bytes(size)})`;
+}
+
+/** Doctor output gets pasted into issues; never print a database password. */
+export function redactUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    if (u.password) u.password = "***";
+    return u.toString();
+  } catch {
+    return raw;
+  }
 }
 
 async function providerStatus(boot: Booted, name: string, env: CliEnv): Promise<string> {

@@ -1,15 +1,15 @@
-import { monthStart, type ModelCallRecord, type SqliteStore, type UsageSink } from "@yrm/core";
+import { monthStart, type ModelCallRecord, type ModelCallStore, type UsageSink } from "@yrm/core";
 
 /**
- * Persists router usage to the SQLite `model_calls` table so spend and the
- * monthly budget survive across CLI invocations.
+ * Persists router usage to the store's `model_calls` table (SQLite or
+ * Postgres) so spend and the monthly budget survive across CLI invocations.
  *
  * `sumModelCost` only reports a total, so `byTier` is always empty here; a
  * per-tier breakdown needs a store method that does not exist yet.
  */
-export class SqliteUsageSink implements UsageSink {
+export class StoreUsageSink implements UsageSink {
   constructor(
-    private readonly store: Pick<SqliteStore, "recordModelCall" | "sumModelCost">,
+    private readonly store: ModelCallStore,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -36,3 +36,6 @@ export class SqliteUsageSink implements UsageSink {
     return { usd, byTier: {} };
   }
 }
+
+/** @deprecated The sink works with any `ModelCallStore`; use `StoreUsageSink`. */
+export const SqliteUsageSink = StoreUsageSink;

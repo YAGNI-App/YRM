@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { estimateMonthly, probeEndpoint } from "../src/commands/doctor.ts";
+import { estimateMonthly, probeEndpoint, redactUrl } from "../src/commands/doctor.ts";
 import { cli, tempDir, writeConfig } from "./helpers.ts";
 
 const cleanups: Array<() => void> = [];
@@ -79,5 +79,13 @@ describe("estimateMonthly", () => {
     const [triage] = estimateMonthly({ triage: [{ provider: "x", model: "m", pricing: { input: 1, output: 1 } }] }, () => false);
     // 1200 calls * 1650 tokens * $1/M
     expect(triage?.usd).toBeCloseTo(1.98, 5);
+  });
+});
+
+describe("redactUrl", () => {
+  test("hides a Postgres password and leaves other values alone", () => {
+    expect(redactUrl("postgres://yrm:s3cret@db.example.test:5432/yrm")).toBe("postgres://yrm:***@db.example.test:5432/yrm");
+    expect(redactUrl("postgres://yrm@db.example.test/yrm")).toBe("postgres://yrm@db.example.test/yrm");
+    expect(redactUrl("/var/yrm.db")).toBe("/var/yrm.db");
   });
 });

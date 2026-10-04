@@ -11,6 +11,7 @@ export const BUILTINS = [
   "@yrm/ext-resolve",
   "@yrm/ext-extract",
   "@yrm/ext-attention",
+  "@yrm/ext-auth",
   "@yrm/ext-mcp",
   "@yrm/ext-web",
 ] as const;

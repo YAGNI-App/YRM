@@ -83,6 +83,7 @@ export class MemoryStore implements Store {
 
   async recordFact<V>(input: NewFact<V>): Promise<Fact<V>> {
     const recordedAt = new Date().toISOString();
+    const knownAt = input.knownAt !== undefined && input.knownAt < recordedAt ? input.knownAt : recordedAt;
     if (input.supersedes) {
       const old = this.facts.get(input.supersedes);
       if (!old) throw new Error(`cannot supersede unknown fact ${input.supersedes}`);
@@ -95,12 +96,15 @@ export class MemoryStore implements Store {
         throw new Error(`a ${input.origin.kind} fact may not supersede human fact ${old.id}`);
       }
       old.retractedAt = recordedAt;
+      const oldKnown = old.knownAt ?? old.recordedAt;
+      old.knownUntil = knownAt > oldKnown ? knownAt : oldKnown;
     }
     const fact: Fact<V> = {
       ...clone(input),
       id: ulid(),
       tenantId: input.tenantId ?? this.defaultTenant,
       recordedAt,
+      knownAt,
     };
     this.facts.set(fact.id, fact as Fact);
     return clone(fact);
@@ -110,6 +114,7 @@ export class MemoryStore implements Store {
     const f = this.facts.get(id);
     if (!f) throw new Error(`fact ${id} not found`);
     f.retractedAt ??= new Date().toISOString();
+    f.knownUntil ??= f.retractedAt;
   }
 
   async endFactValidity(id: string, validTo: string): Promise<void> {
@@ -138,8 +143,9 @@ export class MemoryStore implements Store {
       if (q.minConfidence !== undefined && f.confidence < q.minConfidence) return false;
       if (q.tags && !q.tags.every((t) => f.tags?.includes(t))) return false;
       if (!q.includeRetracted) {
-        if (f.recordedAt > asOf) return false;
-        if (f.retractedAt !== undefined && f.retractedAt <= asOf) return false;
+        if ((f.knownAt ?? f.recordedAt) > asOf) return false;
+        const until = f.knownUntil ?? f.retractedAt;
+        if (until !== undefined && until <= asOf) return false;
         if (f.validFrom > validAt) return false;
         if (f.validTo !== undefined && f.validTo <= validAt) return false;
       }

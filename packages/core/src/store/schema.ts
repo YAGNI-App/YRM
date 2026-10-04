@@ -172,6 +172,18 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX model_calls_tenant_created ON model_calls (tenant_id, created_at);
     `,
   },
+  {
+    version: 2,
+    name: "fact_knowledge_time",
+    // Knowledge time (ADR 0008). Rows written before it existed were known
+    // when they were recorded, so backfill from transaction time.
+    sql: `
+      ALTER TABLE facts ADD COLUMN known_at TEXT NOT NULL DEFAULT '';
+      ALTER TABLE facts ADD COLUMN known_until TEXT;
+      UPDATE facts SET known_at = recorded_at, known_until = retracted_at;
+      CREATE INDEX facts_known ON facts (tenant_id, known_at);
+    `,
+  },
 ];
 
 /** Apply every migration newer than the recorded schema version. */

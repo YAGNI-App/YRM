@@ -26,6 +26,7 @@
         "@yrm/ext-notes": "workspace:*",
         "@yrm/ext-resolve": "workspace:*",
         "@yrm/ext-slack": "workspace:*",
+        "@yrm/ext-views": "workspace:*",
         "@yrm/ext-web": "workspace:*",
         "@yrm/provider-anthropic": "workspace:*",
         "@yrm/provider-openai": "workspace:*",

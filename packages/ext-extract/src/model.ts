@@ -59,23 +59,32 @@ function routerCode(err: unknown): string | undefined {
 }
 
 /**
+ * Tiers whose failure has been logged in this run. Shared by the extractors of
+ * one extension instance and cleared on `host:start`, so an unreachable local
+ * model produces one warning per tier instead of one per event.
+ */
+export type WarnedTiers = Set<string>;
+
+/**
  * Model extractors must never take the pipeline down: with no keys, no budget
  * or a provider outage, the rule extractor's facts still get recorded.
  */
-function degrade(err: unknown, tier: string, log: Logger, state: { announced: boolean }): boolean {
+function degrade(err: unknown, tier: string, log: Logger, warned: WarnedTiers): boolean {
   const code = routerCode(err);
-  if (code !== undefined && UNAVAILABLE.has(code)) {
-    if (!state.announced) {
-      state.announced = true;
-      log.info(`${tier} tier unavailable (${code}); continuing with rule facts only`);
-    }
+  if (code === undefined || (!UNAVAILABLE.has(code) && !FAILED.has(code))) return false;
+  if (warned.has(tier)) {
+    log.debug(`${tier} call failed (${code})`, { error: (err as Error).message });
     return true;
   }
-  if (code !== undefined && FAILED.has(code)) {
-    log.warn(`${tier} call failed (${code}); continuing with rule facts only`, { error: (err as Error).message });
-    return true;
+  warned.add(tier);
+  if (UNAVAILABLE.has(code)) {
+    log.info(`${tier} tier unavailable (${code}); continuing with rule facts only`);
+  } else {
+    log.warn(`${tier} call failed (${code}); continuing with rule facts only; further ${tier} failures this run are not logged`, {
+      error: (err as Error).message,
+    });
   }
-  return false;
+  return true;
 }
 
 function hasRoute(models: ModelRouter, tier: string): boolean {
@@ -115,10 +124,12 @@ export function triageFlagged(t: TriageResult): boolean {
 export interface ModelDeps {
   store: Store;
   models: ModelRouter;
+  /** Shared across extractors so each tier warns once per run. Defaults to a private set. */
+  warned?: WarnedTiers;
 }
 
 export function createTriageExtractor(deps: ModelDeps): Extractor {
-  const state = { announced: false };
+  const warned = deps.warned ?? new Set<string>();
   return {
     name: TRIAGE_EXTRACTOR,
     version: TRIAGE_VERSION,
@@ -141,7 +152,7 @@ export function createTriageExtractor(deps: ModelDeps): Extractor {
           ctx.signal,
         );
       } catch (err) {
-        if (degrade(err, "triage", ctx.log, state)) return [];
+        if (degrade(err, "triage", ctx.log, warned)) return [];
         throw err;
       }
       const parsed = parseTriage(res.json ?? parseJsonText(res.text));
@@ -402,7 +413,7 @@ export function validateModelFacts(
 }
 
 export function createModelExtractor(deps: ModelDeps): Extractor {
-  const state = { announced: false };
+  const warned = deps.warned ?? new Set<string>();
   return {
     name: MODEL_EXTRACTOR,
     version: MODEL_VERSION,
@@ -429,7 +440,7 @@ export function createModelExtractor(deps: ModelDeps): Extractor {
           ctx.signal,
         );
       } catch (err) {
-        if (degrade(err, "extract", ctx.log, state)) return [];
+        if (degrade(err, "extract", ctx.log, warned)) return [];
         throw err;
       }
       const { facts, stats } = validateModelFacts(res.json ?? parseJsonText(res.text), event, ctx, res.model);

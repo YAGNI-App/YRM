@@ -71,4 +71,10 @@ describe("normalizeConfig", () => {
     const c = normalizeConfig({ tenant: {}, storage: { driver: "sqlite", path: "/var/yrm.db" } }, { root: "/proj" });
     expect(c.storage.path).toBe("/var/yrm.db");
   });
+
+  it("reads models.cooldownMs and rejects a negative one", () => {
+    expect(normalizeConfig({ tenant: {}, models: { routes: {}, cooldownMs: 5000 } }).models.cooldownMs).toBe(5000);
+    expect(normalizeConfig({ tenant: {}, models: { routes: {} } }).models.cooldownMs).toBeUndefined();
+    expect(() => normalizeConfig({ tenant: {}, models: { routes: {}, cooldownMs: -1 } })).toThrow('"models.cooldownMs" must be a non-negative number');
+  });
 });

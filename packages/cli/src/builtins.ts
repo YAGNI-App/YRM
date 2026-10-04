@@ -10,6 +10,7 @@ export const BUILTINS = [
   "@yrm/ext-extract",
   "@yrm/ext-attention",
   "@yrm/ext-views",
+  "@yrm/ext-auth",
   "@yrm/ext-mcp",
   "@yrm/ext-web",
   "@yrm/ext-slack",
@@ -34,6 +35,7 @@ export const BUNDLED: Readonly<Record<string, () => Promise<unknown>>> = {
   "@yrm/ext-web": () => import("@yrm/ext-web"),
   "@yrm/ext-slack": () => import("@yrm/ext-slack"),
   "@yrm/ext-views": () => import("@yrm/ext-views"),
+  "@yrm/ext-auth": () => import("@yrm/ext-auth"),
   "@yrm/ext-gmail": () => import("@yrm/ext-gmail"),
 };
 

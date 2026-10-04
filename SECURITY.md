@@ -2,6 +2,10 @@
 
 YRM stores mail, meeting notes and facts about people. We treat vulnerabilities seriously even before 1.0.
 
+## Threat model
+
+[docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) describes what YRM protects, its trust boundaries, the threats we consider and the mitigations in place. [ADR 0008](docs/decisions/0008-static-bearer-tokens-with-loopback-bypass.md) records how `yrm web` and `yrm serve --http` authenticate callers.
+
 ## Reporting
 
 Report vulnerabilities through GitHub's private vulnerability reporting: on this repository, open the **Security** tab and choose **Report a vulnerability**. Do not open a public issue, discussion or pull request for a security problem.

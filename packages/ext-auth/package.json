@@ -1,0 +1,13 @@
+{
+  "name": "@yrm/ext-auth",
+  "version": "0.1.0",
+  "description": "YRM authentication: bearer tokens, a loopback bypass and web sessions for yrm web and yrm serve --http.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  }
+}

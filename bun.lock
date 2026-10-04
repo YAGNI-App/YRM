@@ -18,6 +18,7 @@
       "dependencies": {
         "@yrm/core": "workspace:*",
         "@yrm/ext-attention": "workspace:*",
+        "@yrm/ext-auth": "workspace:*",
         "@yrm/ext-calendar": "workspace:*",
         "@yrm/ext-extract": "workspace:*",
         "@yrm/ext-gmail": "workspace:*",
@@ -50,6 +51,13 @@
     },
     "packages/ext-attention": {
       "name": "@yrm/ext-attention",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
+    "packages/ext-auth": {
+      "name": "@yrm/ext-auth",
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
@@ -90,6 +98,7 @@
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.32.0",
         "@yrm/core": "workspace:*",
+        "@yrm/ext-auth": "workspace:*",
         "zod": "^4.6.5",
       },
     },
@@ -129,6 +138,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
+        "@yrm/ext-auth": "workspace:*",
       },
     },
     "packages/pi": {
@@ -195,6 +205,8 @@
     "@yrm/core": ["@yrm/core@workspace:packages/core"],
 
     "@yrm/ext-attention": ["@yrm/ext-attention@workspace:packages/ext-attention"],
+
+    "@yrm/ext-auth": ["@yrm/ext-auth@workspace:packages/ext-auth"],
 
     "@yrm/ext-calendar": ["@yrm/ext-calendar@workspace:packages/ext-calendar"],
 

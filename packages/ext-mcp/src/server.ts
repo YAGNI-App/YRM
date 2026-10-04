@@ -23,6 +23,17 @@ export interface McpServerOptions {
   context(client: string | undefined): ToolContext;
   resources: McpResources;
   log: Logger;
+  /**
+   * False when the caller's token lacks the `write` scope: write tools stay
+   * listed but refuse, even with `confirm: true`. Default true (stdio).
+   */
+  canWrite?: boolean;
+}
+
+export class WriteScopeRequiredError extends YrmError {
+  constructor(tool: string) {
+    super("WRITE_SCOPE_REQUIRED", `${tool} writes to YRM, and this connection's token has read-only access. Nothing was written.`);
+  }
 }
 
 function json(value: unknown): string {
@@ -60,6 +71,7 @@ export function createMcpServer(opts: McpServerOptions): McpServer {
       },
       async (args: unknown): Promise<CallToolResult> => {
         try {
+          if (!tool.readOnly && opts.canWrite === false) throw new WriteScopeRequiredError(tool.name);
           const out = await tool.run(args ?? {}, opts.context(client()));
           return { content: [{ type: "text", text: json(out ?? null) }] };
         } catch (err) {

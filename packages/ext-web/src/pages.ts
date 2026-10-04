@@ -49,7 +49,9 @@ export function layout(v: View, title: string, active: string, body: Renderable)
 </div></header>
 <main class="wrap">${body}</main>
 <footer class="wrap foot">
-  <p>YRM 0.1 local dashboard. <strong>No authentication:</strong> anyone who can reach this port can read and change this data. It listens on 127.0.0.1 unless started with <span class="mono">--host</span>.</p>
+  <p>YRM 0.1 dashboard.${v.principal ? html` Acting as <span class="mono">${v.principal}</span>.` : ""}${
+    v.session ? html` <form method="post" action="/logout" class="inline"><input type="hidden" name="_csrf" value="${v.csrf}"><button type="submit" class="btn quiet">Sign out</button></form>` : ""
+  }</p>
   <p class="muted">Times shown in ${v.tz}. Every fact links to the message it came from.</p>
 </footer>
 </body>

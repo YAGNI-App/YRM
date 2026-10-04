@@ -1,5 +1,6 @@
 import {
   todayIn,
+  YrmError,
   type Command,
   type ExtensionAPI,
   type ExtensionFactory,
@@ -8,11 +9,13 @@ import {
   type ToolContext,
 } from "@yrm/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { authSettingsOf, hasScope, loadTokens, type Auth, type Grant } from "@yrm/ext-auth";
 import { buildContextAdditions } from "./context.ts";
 import { dropDismissed } from "./dismiss.ts";
 import { clampLimit } from "./format.ts";
 import { HOST_READY_TOPIC, HostBinding, isMcpHost, type McpHost } from "./host.ts";
 import { getEntityView, readTools, todayView } from "./read-tools.ts";
+import { DEFAULT_HTTP_HOST, DEFAULT_HTTP_PORT, HEALTH_PATH, MCP_PATH, serveHttp, type RunningHttp } from "./http.ts";
 import { createMcpServer, serveStdio } from "./server.ts";
 import { noteSource, writeTools, type WriteSettings } from "./write-tools.ts";
 
@@ -21,7 +24,16 @@ export { ATTENTION_NS, dismissKey, dropDismissed, type Dismissal } from "./dismi
 export { HOST_READY_TOPIC, HostBinding, type McpHost } from "./host.ts";
 export { classify, openItems, type OpenItem } from "./open-items.ts";
 export { jsonSchemaToZod } from "./schema.ts";
-export { createMcpServer, exposedTools, serveStdio, toolError, type McpResources, type McpServerOptions } from "./server.ts";
+export { DEFAULT_HTTP_HOST, DEFAULT_HTTP_PORT, HEALTH_PATH, MCP_PATH, serveHttp, type HttpServeOptions, type RunningHttp } from "./http.ts";
+export {
+  createMcpServer,
+  exposedTools,
+  serveStdio,
+  toolError,
+  WriteScopeRequiredError,
+  type McpResources,
+  type McpServerOptions,
+} from "./server.ts";
 export { STORY_MARKDOWN } from "./story.ts";
 export { ConfirmationRequiredError, DEFAULT_PRINCIPAL, NOTE_SOURCE, ORIGIN_VERSION } from "./write-tools.ts";
 
@@ -78,7 +90,7 @@ export function createMcpExtension(options: McpExtensionOptions = {}): Extension
 /** Build an MCP server for a host: all its registered tools, with calls running as `principal`. */
 export function createServerForHost(
   host: McpHost,
-  opts: { principal?: string; tools?: Tool[] } = {},
+  opts: { principal?: string; tools?: Tool[]; canWrite?: boolean } = {},
 ): McpServer {
   const binding = new HostBinding(host);
   const tenantId = host.config.tenant.id;
@@ -87,6 +99,30 @@ export function createServerForHost(
     log: host.log,
     context: (client) => toolContext(tenantId, host, opts.principal, client),
     resources: resourcesFor(binding, { tenantId, store: host.store }),
+    ...(opts.canWrite !== undefined ? { canWrite: opts.canWrite } : {}),
+  });
+}
+
+/** Who loopback HTTP callers act as when `settings.mcp.principal` is unset. */
+export const HTTP_LOCAL_PRINCIPAL = "agent:mcp/http";
+
+function parseHttpPort(v: string | boolean): number {
+  if (v === true) return DEFAULT_HTTP_PORT;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 0 || n > 65535) throw new Error(`--http must be a port 0..65535, got "${String(v)}"`);
+  return n;
+}
+
+/** Resolves on SIGINT or SIGTERM. */
+function untilSignal(): Promise<void> {
+  return new Promise((resolve) => {
+    const done = (): void => {
+      process.off("SIGINT", done);
+      process.off("SIGTERM", done);
+      resolve();
+    };
+    process.on("SIGINT", done);
+    process.on("SIGTERM", done);
   });
 }
 
@@ -120,13 +156,9 @@ function resourcesFor(binding: HostBinding, ctx: Pick<ToolContext, "tenantId" | 
 function serveCommand(yrm: ExtensionAPI, binding: HostBinding, own: Tool[], settings: () => McpSettings): Command {
   return {
     name: "serve",
-    description: "Serve YRM to agents over MCP (stdio). Reads are open; writes need confirm: true.",
-    usage: "serve [--mcp] [--http <port>]",
+    description: "Serve YRM to agents over MCP: stdio by default, or Streamable HTTP with bearer tokens (--http). Writes need confirm: true.",
+    usage: "serve [--mcp] [--http <port>] [--host 127.0.0.1]",
     async run(ctx) {
-      if (ctx.flags["http"] !== undefined) {
-        ctx.stderr("yrm serve --http is planned for a later release. Use stdio (the default): yrm serve --mcp");
-        return 2;
-      }
       const host = binding.current;
       if (!host) {
         ctx.log.warn(
@@ -136,6 +168,42 @@ function serveCommand(yrm: ExtensionAPI, binding: HostBinding, own: Tool[], sett
       }
       const tools = host ? host.registry.tools.list() : own;
       const principal = settings().principal;
+      const httpFlag = ctx.flags["http"];
+      if (httpFlag !== undefined && httpFlag !== false) {
+        let port: number;
+        let auth: Auth;
+        try {
+          port = parseHttpPort(httpFlag);
+          auth = await loadTokens(ctx.store, authSettingsOf(host?.config), { log: ctx.log });
+        } catch (err) {
+          ctx.stderr(err instanceof Error ? err.message : String(err));
+          return 2;
+        }
+        const hostFlag = ctx.flags["host"];
+        const hostname = typeof hostFlag === "string" && hostFlag ? hostFlag : DEFAULT_HTTP_HOST;
+        const deps = { store: ctx.store, models: ctx.models, log: ctx.log };
+        const serverFor = (grant: Grant): McpServer =>
+          createMcpServer({
+            tools,
+            log: ctx.log,
+            context: () => toolContext(ctx.tenantId, deps, grant.principal, undefined),
+            resources: resourcesFor(binding, { tenantId: ctx.tenantId, store: ctx.store }),
+            canWrite: hasScope(grant, "write"),
+          });
+        let running: RunningHttp;
+        try {
+          running = serveHttp({ auth, log: ctx.log, serverFor, localPrincipal: principal ?? HTTP_LOCAL_PRINCIPAL, port, hostname });
+        } catch (err) {
+          ctx.stderr(err instanceof Error ? err.message : String(err));
+          return err instanceof YrmError ? 2 : 1;
+        }
+        const origin = running.url.slice(0, -MCP_PATH.length);
+        ctx.stderr(`YRM MCP over HTTP: ${running.url} (health: ${origin}${HEALTH_PATH}). Ctrl-C to stop.`);
+        ctx.log.info("mcp tools", { count: tools.length, extension: yrm.manifest.name });
+        await untilSignal();
+        await running.stop();
+        return 0;
+      }
       const server = createMcpServer({
         tools,
         log: ctx.log,

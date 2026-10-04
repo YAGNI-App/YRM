@@ -13,7 +13,7 @@ Everything is rendered on the server from the store: TypeScript template functio
 ```sh
 yrm web                      # http://127.0.0.1:7777/
 yrm web --port 8080 --open   # pick a port and open a browser
-yrm web --host 0.0.0.0       # listen beyond loopback (see Security)
+yrm web --host 0.0.0.0       # listen beyond loopback; needs a token (see Security)
 ```
 
 `settings.web` in `yrm.config.ts` can set `port`, `host` and `principal` (who dashboard actions are attributed to; default `user:<tenant name>`). Flags win. Ctrl-C stops the server.
@@ -29,7 +29,7 @@ Ranking, the `entity:confirmed` / `entity:merged` hooks and re-projection after 
 
 Without a host the dashboard still works from the store: Today shows the last queue `yrm today` saved (and says so), and confirm/reject/merge write to the store without firing hooks.
 
-To embed it in another process, call `startWebServer({ store, tenantId, log, host, port, hostname })`. It returns the `Bun.serve` server, its URL and `stop()`.
+To embed it in another process, call `startWebServer({ store, tenantId, log, host, port, hostname, auth })`, where `auth` comes from `loadTokens(store, settings.auth)` in `@yrm/ext-auth`. It returns the `Bun.serve` server, its URL and `stop()`. Without `auth` it binds loopback only and lets every local request through.
 
 ## Pages
 
@@ -111,15 +111,21 @@ POST bodies are JSON or a form. JSON calls get JSON back; form posts redirect (3
 
 ## Security
 
-**There is no authentication in 0.1.** Anyone who can reach the port can read everything and confirm, reject, merge and dismiss. The page footer says so too. What the server does:
+Authentication comes from `@yrm/ext-auth` (see its README and [the threat model](../../docs/SECURITY-MODEL.md)):
 
-- Listens on `127.0.0.1` unless `--host` says otherwise, and warns when it does.
+- **Loopback is trusted by default.** On your own machine `yrm web` needs no setup; requests from 127.0.0.1 or ::1 run as `settings.web.principal` (default `user:<tenant name>`). Set `settings.auth.allowLoopback: false` to require a token for those too, and always do so behind a reverse proxy on the same host.
+- **Anything else signs in.** A remote browser is sent to `/login`, which takes a token (from `yrm auth token create` or `settings.auth.tokens`) and sets a `yrm_session` cookie (`HttpOnly`, `SameSite=Strict`, signed with a per-install secret, 12 hours by default). `/logout` clears it. JSON clients can send `Authorization: Bearer <token>` instead; bearer requests skip the CSRF check, which exists for cookies. Unauthenticated page views redirect to `/login`; unauthenticated API calls get 401.
+- **Writes need the `write` scope.** Confirm, reject, merge, dismiss and re-rank answer 403 for a read-only token, and are attributed to the token's principal. The footer shows who you are acting as.
+- **No token, no LAN.** `yrm web --host 0.0.0.0` refuses to start until at least one token exists, and says how to create one.
+
+What the server does on top of that:
+
 - On a loopback bind, answers only requests whose `Host` is a loopback name (421 otherwise), which defeats DNS rebinding.
-- Every POST must be same-origin (`Origin`, or `Referer` when there is no `Origin`) and carry a CSRF token equal to the `yrm_csrf` cookie (`HttpOnly`, `SameSite=Strict`), in the `x-csrf-token` header or the `_csrf` form field. Pages embed the token in their forms and in `<meta name="csrf-token">`.
+- Every POST, sign-in included, must be same-origin (`Origin`, or `Referer` when there is no `Origin`) and carry a CSRF token equal to the `yrm_csrf` cookie (`HttpOnly`, `SameSite=Strict`), in the `x-csrf-token` header or the `_csrf` form field. Pages embed the token in their forms and in `<meta name="csrf-token">`.
 - Escapes every value: the only way to put text into a page is through a tagged template that escapes it.
 - Sends a strict Content-Security-Policy (`default-src 'none'`, scripts and styles only from itself, no inline script or style), `X-Frame-Options: DENY`, `nosniff` and `Referrer-Policy: same-origin`.
 
-Do not expose it beyond your machine until YRM has auth (planned for 0.3).
+The server speaks plain HTTP. Beyond a trusted LAN, put TLS in front of it.
 
 ## What to look at in a demo
 

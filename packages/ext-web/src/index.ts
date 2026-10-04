@@ -1,4 +1,5 @@
-import { systemTimezone, type Command, type ExtensionAPI, type ExtensionFactory, type ExtensionManifest, type Logger, type Store } from "@yrm/core";
+import { systemTimezone, YrmError, type Command, type ExtensionAPI, type ExtensionFactory, type ExtensionManifest, type Logger, type Store } from "@yrm/core";
+import { assertBindAllowed, authSettingsOf, loadTokens, type Auth } from "@yrm/ext-auth";
 import { createWebApp, type WebApp } from "./app.ts";
 import type { WebDeps } from "./data.ts";
 import { HOST_READY_TOPIC, HostBinding, isWebHost, type WebHost } from "./host.ts";
@@ -42,6 +43,11 @@ export interface StartOptions {
   /** Default 127.0.0.1. */
   hostname?: string;
   principal?: string;
+  /**
+   * Who may connect (`loadTokens` from `@yrm/ext-auth`). Without it the
+   * server only binds loopback and lets every local request through.
+   */
+  auth?: Auth;
   now?: () => Date;
 }
 
@@ -70,8 +76,16 @@ export function startWebServer(opts: StartOptions): RunningWeb {
     actor: () => opts.principal ?? defaultPrincipal(host()),
     now: opts.now ?? (() => new Date()),
   };
-  const app = createWebApp(deps, { loopbackOnly: isLoopbackBind(hostname) });
-  const server = Bun.serve({ port: opts.port ?? DEFAULT_PORT, hostname, fetch: (req) => app.fetch(req) });
+  if (opts.auth) assertBindAllowed(hostname, opts.auth, "yrm web");
+  else if (!isLoopbackBind(hostname)) {
+    throw new Error(`yrm web will not listen on ${hostname} without authentication; pass auth (see @yrm/ext-auth) or bind 127.0.0.1`);
+  }
+  const app = createWebApp(deps, opts.auth ? { loopbackOnly: isLoopbackBind(hostname), auth: opts.auth } : { loopbackOnly: isLoopbackBind(hostname) });
+  const server: ReturnType<typeof Bun.serve> = Bun.serve({
+    port: opts.port ?? DEFAULT_PORT,
+    hostname,
+    fetch: (req) => app.fetch(req, server.requestIP(req)?.address ?? null),
+  });
   const shown = hostname.includes(":") ? `[${hostname}]` : hostname;
   return {
     server,
@@ -137,17 +151,30 @@ function webCommand(yrm: ExtensionAPI, binding: HostBinding): Command {
             `Bind it with createWebExtension({ host }) or emit "${HOST_READY_TOPIC}" with the host after loading extensions.`,
         );
       }
-      const opts: StartOptions = { store: ctx.store, tenantId: ctx.tenantId, log: ctx.log, host, port, hostname };
+      let auth: Auth;
+      try {
+        auth = await loadTokens(ctx.store, authSettingsOf(host?.config), { log: ctx.log });
+      } catch (err) {
+        ctx.stderr(err instanceof Error ? err.message : String(err));
+        return 2;
+      }
+      const opts: StartOptions = { store: ctx.store, tenantId: ctx.tenantId, log: ctx.log, host, port, hostname, auth };
       if (settings.principal !== undefined) opts.principal = settings.principal;
       let running: RunningWeb;
       try {
         running = startWebServer(opts);
       } catch (err) {
+        if (err instanceof YrmError) {
+          ctx.stderr(err.message);
+          return 2;
+        }
         ctx.stderr(`could not listen on ${hostname}:${port}: ${err instanceof Error ? err.message : String(err)}`);
         return 1;
       }
       ctx.stdout(`YRM dashboard: ${running.url}`);
-      if (!isLoopbackBind(hostname)) ctx.stderr(`warning: listening on ${hostname} with no authentication; anyone who can reach it can read and change your data`);
+      if (!isLoopbackBind(hostname)) {
+        ctx.stderr(`listening on ${hostname}: remote callers sign in with a token at /login${auth.allowLoopback ? "; loopback callers need none" : ""}. Traffic is plain HTTP; put TLS in front for anything beyond a trusted LAN.`);
+      }
       ctx.stdout("Ctrl-C to stop.");
       if (ctx.flags["open"] === true) await openBrowser(running.url, ctx.log);
       await untilSignal();

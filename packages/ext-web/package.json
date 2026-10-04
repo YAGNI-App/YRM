@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@yrm/core": "workspace:*"
+    "@yrm/core": "workspace:*",
+    "@yrm/ext-auth": "workspace:*"
   }
 }

@@ -36,7 +36,7 @@ packages/core            @yrm/core      contracts, store (sqlite), extension hos
 packages/cli             @yrm/cli       the `yrm` command
 packages/store-postgres  @yrm/store-postgres  Postgres Store (loaded by createStore for driver "postgres")
 packages/provider-*      @yrm/provider-*  model providers (anthropic, openai-compatible)
-packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, views, mcp, web)
+packages/ext-*           @yrm/ext-*     built-in extensions (mail, calendar, notes, extract, resolve, attention, views, auth, mcp, web, slack)
 fixtures/                synthetic corpora with ground-truth facts, used by tests and demos
 docs/ARCHITECTURE.md     the design
 docs/decisions/          ADRs, numbered, never deleted; superseded ADRs say so at the top

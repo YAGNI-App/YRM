@@ -115,13 +115,14 @@
     {
       "id": "f04",
       "type": "commitment",
-      "subject": "marcus",
+      "subject": "rachel",
       "object": "jack",
-      "statement": "Marcus committed that procurement (Rachel Kim) would return the order form with redlines by July 17.",
+      "statement": "Rachel Kim (procurement) will return the order form with redlines by July 17, as Marcus promised on her behalf.",
       "dueAt": "2026-07-17",
       "status": "fulfilled",
       "evidence": ["notes/2026-07-08-pilot-scoping.md", "<202607090931.decision@acme-robotics.example>"],
-      "resolvedBy": "<202607171548.orderform@acme-robotics.example>"
+      "resolvedBy": "<202607171548.orderform@acme-robotics.example>",
+      "note": "Marcus's mail says \"She'll have the order form back to you\" right after naming Rachel, who is on cc and delivers it. Like f07 (\"Dana will send\" in Jack's mail), a promise reported for a named colleague is that colleague's."
     },
     {
       "id": "f05",

@@ -33,6 +33,7 @@ export {
   formatScorecard,
   jaccard,
   scoreFacts,
+  type ClosureScore,
   type GroundTruth,
   type GroundTruthFact,
   type Scorecard,

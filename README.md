@@ -12,7 +12,7 @@ YRM is an open context layer for relationships. It ingests your mail, meetings a
 
 ## Status
 
-**0.1 is in progress. There is nothing to install yet.** The contracts in `packages/core/src/contracts/` are written; the store, pipeline, CLI and built-in extensions are next. Watch the repository to follow along.
+**0.1 is in progress.** The contracts, store, pipeline, CLI and built-in extensions are in place and run against the demo corpus (see [Try it](#try-it)). Nothing is published to npm yet. Watch the repository to follow along.
 
 - [VISION.md](VISION.md): where this is going.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the design.
@@ -71,16 +71,64 @@ Per active user per month on hosted models, estimated. Details in [ADR 0007](doc
 
 On self-hosted open-weight models, triage and extract cost close to nothing. With no models configured, YRM falls back to rule-based extraction and ranking.
 
-## Try it (target for 0.1)
+## Try it
 
-These commands are what 0.1 will support. They do not work yet.
+The Acme fixture is a synthetic company: 40 emails, 4 meetings and 3 call notes from a pilot that goes quiet. It has its own `yrm.config.ts`, so you can run the CLI from inside it. No model or API key is needed; without one, extraction is rule-based and nothing leaves your machine.
 
 ```sh
 bun install
-bun run yrm -- import fixtures/acme     # load a synthetic company's mail and meetings
-bun run yrm -- today                    # the attention queue, with reasons
-bun run yrm -- serve --mcp              # expose facts and entities to an agent
+cd fixtures/acme
+bun run ../../packages/cli/src/main.ts import .                  # mail, calendar and notes
+bun run ../../packages/cli/src/main.ts today --date 2026-10-03   # the attention queue on the corpus's last day
+bun run ../../packages/cli/src/main.ts who                       # everyone, people under their organization
+bun run ../../packages/cli/src/main.ts doctor                    # config, extensions, model routes, spend
 ```
+
+The store goes to `fixtures/acme/.yrm/`, which is gitignored. Delete it to start over. If no local model is running, `import` prints one warning for the triage tier and carries on.
+
+`import .`:
+
+```
+source    path      created  dup  dropped  skipped
+--------  --------  -------  ---  -------  -------
+mail      mail           33    0        7        0
+calendar  calendar        4    0        0        0
+notes     notes           3    0        0        0
+
+events created                 40
+duplicates                      0
+dropped                         7
+participants resolved         147
+entities proposed              13
+facts recorded                 62
+  superseding earlier facts    15
+time                         81ms
+```
+
+`today --date 2026-10-03` (13 items; the first two and the account that went quiet):
+
+```
+Today, 2026-10-03 for YAGNI  (13 items)
+
+ 1. ██████████ 1.00  Reply to Marcus Bell about: If your Type II report slips past September 30, will you let us exit the pilot…
+    Asked 31 days ago in 'Re: Security review follow-ups'; no reply from you since.
+    about: Marcus Bell
+    (facts: 1, events: 1)
+
+ 2. ██████████ 0.95  Deliver to Elena Vasquez: I will send you our SOC 2 Type II report by September 30.
+    You promised this to Elena Vasquez; it was due 2026-09-30 and is 3 days late with no delivery recorded.
+    about: Elena Vasquez  ·  due: 2026-09-30
+    (facts: 1, events: 1)
+
+   ...
+
+ 8. ███████░░░ 0.70  Re-engage Acme Robotics: quiet for 31 days with 11 open items
+    Nobody at Acme Robotics has written or met with you since Marcus Bell on 2026-09-02, and 11 asks, commitments or objections involving them are still open.
+    about: Acme Robotics, Marcus Bell
+    (facts: 11, events: 10)
+```
+
+`--date` ranks a day using everything known now. Add `--as-of <date>` to see only what had been recorded by then.
 
 ## Built in public by YAGNI's agent Teams
 

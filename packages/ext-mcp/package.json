@@ -1,0 +1,15 @@
+{
+  "name": "@yrm/ext-mcp",
+  "version": "0.1.0",
+  "description": "YRM MCP server: exposes facts, entities, events and the attention queue to agents, with provenance.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@yrm/core": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}

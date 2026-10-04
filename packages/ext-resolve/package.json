@@ -1,0 +1,13 @@
+{
+  "name": "@yrm/ext-resolve",
+  "version": "0.1.0",
+  "description": "YRM entity resolution: addresses to people, domains to organizations, same-name merge suggestions and job-change signals.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@yrm/core": "workspace:*"
+  }
+}

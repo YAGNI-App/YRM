@@ -23,6 +23,13 @@
         "@yrm/core": "workspace:*",
       },
     },
+    "packages/ext-mail": {
+      "name": "@yrm/ext-mail",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/ext-notes": {
       "name": "@yrm/ext-notes",
       "version": "0.1.0",
@@ -67,6 +74,8 @@
     "@yrm/core": ["@yrm/core@workspace:packages/core"],
 
     "@yrm/ext-calendar": ["@yrm/ext-calendar@workspace:packages/ext-calendar"],
+
+    "@yrm/ext-mail": ["@yrm/ext-mail@workspace:packages/ext-mail"],
 
     "@yrm/ext-notes": ["@yrm/ext-notes@workspace:packages/ext-notes"],
 

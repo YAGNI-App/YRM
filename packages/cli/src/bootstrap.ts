@@ -10,7 +10,7 @@ import {
   MemoryUsageSink,
   normalizeConfig,
   Router,
-  SqliteStore,
+  isModelCallStore,
   type ExtensionFactory,
   type ExtensionManifest,
   type Host,
@@ -28,7 +28,7 @@ import openAIProvider, {
   readOpenAIConfig,
 } from "@yrm/provider-openai";
 import { BUILTINS, BUNDLED, packageShortName } from "./builtins.ts";
-import { SqliteUsageSink } from "./usage-sink.ts";
+import { StoreUsageSink } from "./usage-sink.ts";
 
 /**
  * Provider factories read their settings through `yrm.config.get()`, which
@@ -145,7 +145,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<Booted> {
   }
   const store = await createStore(config.storage);
   try {
-    const usage: UsageSink = store instanceof SqliteStore ? new SqliteUsageSink(store) : new MemoryUsageSink();
+    const usage: UsageSink = isModelCallStore(store) ? new StoreUsageSink(store) : new MemoryUsageSink();
     const providers = new RegistryProviderMap();
     // Assigned right after createHost; the router only calls hooks during a completion.
     let host: Host | undefined;

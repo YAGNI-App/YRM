@@ -88,7 +88,7 @@ Tables (SQLite): `events`, `event_participants`, `facts`, `fact_provenance`, `en
 
 ## Multi-tenancy
 
-`tenantId` is on every row from day one. A solo install has one tenant, `local`. Nothing in core assumes a single tenant. `yrm web` and `yrm serve --http` authenticate callers with bearer tokens and a loopback bypass (`@yrm/ext-auth`, ADR 0008); multi-user access control is out of scope for 0.1 (see `docs/SECURITY-MODEL.md`).
+`tenantId` is on every row from day one. A solo install has one tenant, `local`. Nothing in core assumes a single tenant. `yrm web` and `yrm serve --http` authenticate callers with bearer tokens and a loopback bypass (`@yrm/ext-auth`, [ADR 0012](decisions/0012-static-bearer-tokens-with-loopback-bypass.md)); multi-user access control is out of scope for 0.1 (see `docs/SECURITY-MODEL.md`).
 
 ## What is deliberately not here
 

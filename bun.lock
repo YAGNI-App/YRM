@@ -16,8 +16,29 @@
         "ulid": "^2.3.0",
       },
     },
+    "packages/ext-calendar": {
+      "name": "@yrm/ext-calendar",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
     "packages/ext-mail": {
       "name": "@yrm/ext-mail",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
+    "packages/ext-notes": {
+      "name": "@yrm/ext-notes",
+      "version": "0.1.0",
+      "dependencies": {
+        "@yrm/core": "workspace:*",
+      },
+    },
+    "packages/ext-resolve": {
+      "name": "@yrm/ext-resolve",
       "version": "0.1.0",
       "dependencies": {
         "@yrm/core": "workspace:*",
@@ -52,7 +73,13 @@
 
     "@yrm/core": ["@yrm/core@workspace:packages/core"],
 
+    "@yrm/ext-calendar": ["@yrm/ext-calendar@workspace:packages/ext-calendar"],
+
     "@yrm/ext-mail": ["@yrm/ext-mail@workspace:packages/ext-mail"],
+
+    "@yrm/ext-notes": ["@yrm/ext-notes@workspace:packages/ext-notes"],
+
+    "@yrm/ext-resolve": ["@yrm/ext-resolve@workspace:packages/ext-resolve"],
 
     "@yrm/provider-anthropic": ["@yrm/provider-anthropic@workspace:packages/provider-anthropic"],
 
